@@ -600,6 +600,8 @@ GameModeBridge/
 - 불확실한 사항(삼성 루틴 동작, 기기별 차이 등)은 추측으로 단정하지 않고 검증 방법을 제시함
 - 각 단계의 완료 기준을 통과하면 해당 단계를 git commit 하고 다음 단계로 진행함 (커밋 메시지 예: `2단계: 암호화 모듈`)
   - ◦ 실기기 확인이 필요한 완료 기준은 사용자 확인 후 커밋함
+  - ◦ 커밋 후 GitHub 비공개 저장소(`origin`, https://github.com/TIRIAS/GameModeBridge)에 push함
+  - ◦ 강제 push(`--force`)와 기록 재작성은 사용자 확인 없이 하지 않음
 
 ### □ 가상환경 및 테스트 규칙
 - Python 명령은 항상 `pc/.venv`의 python으로 실행함 (2장)

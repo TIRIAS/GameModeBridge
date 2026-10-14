@@ -180,6 +180,7 @@ py -3.12 -m venv .venv
   - ◦ Android Keystore + javax.crypto (AES-GCM 복호화)
   - ◦ Google 코드 스캐너 (ML Kit, 카메라 권한 없이 QR 스캔)
   - ◦ NotificationCompat
+  - ◦ kotlinx.serialization: JSON 처리 (JVM 단위 테스트에서는 안드로이드 내장 org.json이 동작하지 않으므로 사용함)
 - UI: 최소한으로 구성함 (상태 표시, 기기 등록, 테스트 버튼)
 
 ### □ 신호 전달

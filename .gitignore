@@ -1,0 +1,29 @@
+# Python 가상환경 및 캐시
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+dist/
+*.spec
+
+# 비밀 정보 및 개인 설정 (11장)
+pc/config.json
+*service-account*.json
+*firebase-adminsdk*.json
+sa.bin
+google-services.json
+
+# 안드로이드
+.gradle/
+local.properties
+android/**/build/
+.idea/
+*.iml
+captures/
+.cxx/
+*.jks
+*.keystore
+
+# 로그
+*.log

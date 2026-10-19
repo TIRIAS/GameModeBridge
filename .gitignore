@@ -24,6 +24,7 @@ captures/
 .cxx/
 *.jks
 *.keystore
+keystore.properties
 
 # 로그
 *.log

@@ -252,7 +252,23 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
   - ◦ 8 서비스 exported false, 릴리스에 시뮬레이터 없음: 통과
   - ◦ 9 루틴 조건에 앱 지정: 확인 불가 (갤럭시와 루틴 없음)
   - ◦ 10 pip-audit: 통과 (알려진 취약점 없음)
-- 남은 완료 기준: 시작 프로그램 등록 후 재부팅 자동 실행 확인 (사용자)
+- 남은 완료 기준: 시작 프로그램 등록 후 재부팅 자동 실행 확인 (사용자가 직접 하기로 함)
+
+### □ 다른 기기에 설치할 수 있게 포팅
+- 사용자 결정: 대상은 다른 Windows PC와 다른 안드로이드 휴대폰, 연결 구성은 PC 1대와 휴대폰 1대 유지
+- PC (개발 환경 없이 exe만으로 설치)
+  - ◦ 트레이 메뉴 추가: **서비스 계정 가져오기...** (파일 탐색기로 JSON 선택, DPAPI 저장, 원본 삭제 안내), **실제 발송** 체크 (config의 mode 저장, 발송자 재생성 후 현재 상태 재발송)
+  - ◦ `config.save_mode` 추가, 설정 값 하나만 바꾸는 `_update`로 정리
+  - ◦ `pc/build.ps1`: 테스트 후 PyInstaller 빌드, 저장소 루트 `dist\GameModeBridge.exe`로 복사. PowerShell 5.1이 한글을 읽도록 BOM 있는 UTF-8로 저장
+- 안드로이드 (서명된 APK 파일로 설치)
+  - ◦ 릴리스 서명 키 생성: `%USERPROFILE%\.gamemodebridge\release.jks` (RSA 4096, PKCS12), 비밀번호는 무작위 생성하여 `android\keystore.properties`에만 기록 (커밋 제외, 출력 안 함)
+  - ◦ `app/build.gradle.kts`: keystore.properties가 있을 때만 릴리스 서명
+  - ◦ apksigner 검증 통과 (v2 서명). 인증서 SHA-1 `ff:ec:da:4c:8f:ba:bc:a0:18:7f:65:49:83:f4:c0:48:c7:47:82:43`
+  - ◦ 처음 apksigner 결과를 통과로 보고했으나 JAVA_HOME이 없어 실제로는 출력이 비어 있었음. JAVA_HOME 지정 후 다시 검증하여 확인
+- 배포 폴더 `dist\`: `GameModeBridge.exe`, `GameModeBridge.apk` (커밋 제외)
+- README: 다른 PC 설치, 이전 PC 정리, 다른 휴대폰 설치, 릴리스 서명 키 백업과 SHA-1 등록 안내
+- CLAUDE.md 11장: 서명 키와 비밀번호 파일, PC별 서비스 계정 키 관리 추가
+- 테스트: PC `pytest` 120 passed, 안드로이드 `testDebugUnitTest` 통과, 새 exe 실행 확인
 
 ---
 

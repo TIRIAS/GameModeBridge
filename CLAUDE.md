@@ -653,7 +653,9 @@ GameModeBridge/
   - ◦ 공유 키: PC는 keyring, 휴대폰은 Keystore에만 존재함
   - ◦ Firebase 서비스 계정 JSON: DPAPI 암호화 파일로만 보관함
   - ◦ `google-services.json`: 비밀 키는 아니지만 공개 저장소에 올리지 않음
-  - ◦ `pc/config.json`: 개인 환경 정보 포함
+  - ◦ 설정 파일(`%APPDATA%/GameModeBridge/config.json`, 예전 위치 `pc/config.json`): 개인 환경 정보 포함
+  - ◦ 릴리스 서명 키 `%USERPROFILE%/.gamemodebridge/release.jks`와 비밀번호 파일 `android/keystore.properties`: 저장소 밖 또는 커밋 제외. 잃어버리면 앱 업데이트가 불가하므로 사용자가 별도 백업함. 비밀번호를 출력하지 않음
+  - ◦ 서비스 계정 키는 PC마다 따로 발급하고, PC를 정리할 때 그 PC의 키를 콘솔에서 삭제함
 - 위 파일은 모두 .gitignore에 포함함
 - 코드, 로그, 오류 메시지, 커밋 메시지에 키나 토큰 내용을 출력하지 않음
 - 선택 사항: gitleaks 같은 비밀 정보 검사 도구를 pre-commit 훅으로 등록함

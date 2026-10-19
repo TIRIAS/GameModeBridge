@@ -93,6 +93,16 @@ def test_save_games_rejects_invalid_without_writing(tmp_path):
     assert json.loads(path.read_text(encoding="utf-8"))["games"] == ["a.exe"]
 
 
+def test_save_mode_keeps_other_settings_and_validates(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"games": ["a.exe"]}), encoding="utf-8")
+    assert config.save_mode(path, "live").mode == "live"
+    assert json.loads(path.read_text(encoding="utf-8")) == {"games": ["a.exe"], "mode": "live"}
+    with pytest.raises(config.ConfigError):
+        config.save_mode(path, "fast")
+    assert json.loads(path.read_text(encoding="utf-8"))["mode"] == "live"
+
+
 def test_add_games_from_picked_paths():
     games, rejected = config.add_games(
         ["EXCEL.EXE"],

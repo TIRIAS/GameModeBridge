@@ -12,33 +12,77 @@ PC에서 지정한 프로그램(게임)이 실행되면 휴대폰의 게임 모�
 
 ---
 
-## PC 앱
+## 배포 파일 빌드 (개발 PC)
 
-### 빌드
+| 대상 | 명령 | 결과물 |
+|---|---|---|
+| PC exe | `pc` 폴더에서 `powershell -ExecutionPolicy Bypass -File build.ps1` (테스트 후 PyInstaller 빌드) | `dist\GameModeBridge.exe` |
+| 휴대폰 APK | `android` 폴더에서 `gradlew.bat testDebugUnitTest assembleRelease` | `android\app\build\outputs\apk\release\app-release.apk` (`dist\GameModeBridge.apk`로 복사) |
 
-`pc` 폴더에서 실행합니다.
+APK 서명에는 아래 "릴리스 서명 키"가 필요합니다. 없으면 서명되지 않은 APK가 만들어져 설치할 수 없습니다.
 
-```
-.venv\Scripts\python.exe -m PyInstaller --onefile --noconsole --name GameModeBridge --paths . ^
-  --hidden-import pystray._win32 --hidden-import keyring.backends.Windows ^
-  --distpath dist --workpath build\pyi --specpath build gmb\__main__.py
-```
+---
 
-결과물: `pc\dist\GameModeBridge.exe`
+## 다른 기기에 설치
 
-### 처음 설정 (한 번만)
+연결 구성은 PC 1대와 휴대폰 1대입니다. 다른 PC로 옮기면 새 PC에서 기기 등록을 다시 하며, 그 순간부터 이전 PC의 신호는 휴대폰이 폐기합니다.
+배포 폴더 `dist\` 에 `GameModeBridge.exe` (PC)와 `GameModeBridge.apk` (휴대폰)가 있습니다. 두 파일 모두 비밀 정보를 담고 있지 않습니다.
 
-1. 서비스 계정 키 가져오기 (FCM 발송 역할만 가진 전용 계정)
+### 다른 Windows PC (개발 환경 불필요)
+
+1. `GameModeBridge.exe`를 원하는 위치에 복사하고 실행합니다.
+   - 서명되지 않은 exe라 Windows SmartScreen 경고가 뜨면 **추가 정보 → 실행**을 누릅니다.
+   - 관리자 권한은 필요 없습니다.
+2. 새 PC용 서비스 계정 키를 발급합니다. (원래 키 파일은 가져온 뒤 삭제했으므로 PC마다 새로 발급)
+   - Google Cloud 콘솔 → IAM 및 관리자 → 서비스 계정 → `gmb-sender` → **키** 탭 → **키 추가 → 새 키 만들기 → JSON**
+   - 기존 계정에 키만 추가하므로 역할 설정은 다시 하지 않습니다.
+3. 트레이 메뉴 **서비스 계정 가져오기...** 에서 받은 JSON을 고릅니다. 완료 창이 뜨면 원본 JSON 파일을 삭제하고 휴지통도 비웁니다.
+4. 트레이 메뉴 **기기 등록...** 으로 휴대폰을 등록합니다.
+5. 트레이 메뉴 **감지할 프로그램 관리...** 에서 게임 exe를 추가합니다.
+6. 트레이 메뉴 **실제 발송** 을 체크합니다. (새 설정 파일은 발송하지 않는 드라이런으로 시작함)
+7. 필요하면 시작 프로그램에 등록합니다 (아래 "Windows 시작 시 자동 실행").
+
+### 이전 PC 정리
+
+1. 트레이에서 종료하고 exe를 삭제합니다.
+2. `%APPDATA%\GameModeBridge` 폴더를 삭제합니다 (설정, 암호화된 서비스 계정 키, 로그).
+3. 제어판 → 자격 증명 관리자 → Windows 자격 증명에서 `GameModeBridge` 항목을 삭제합니다 (공유 키, 토픽).
+4. Google Cloud 콘솔의 `gmb-sender` 키 탭에서 그 PC에 발급했던 키를 삭제합니다.
+
+### 다른 안드로이드 휴대폰 (갤럭시 등)
+
+1. `GameModeBridge.apk`를 휴대폰으로 옮깁니다 (USB 파일 전송, 클라우드 드라이브, 메신저 내게 보내기 등).
+2. 휴대폰에서 파일을 열어 설치합니다. 출처를 알 수 없는 앱 설치 허용을 물으면 그 앱(파일 관리자 등)에만 허용합니다.
+3. 앱 실행 → 알림 권한 허용 → **배터리 최적화 설정 열기**에서 제한 없음으로 설정합니다.
+4. 앱의 **기기 등록** → **QR 스캔** 으로 PC 트레이의 기기 등록 QR을 스캔합니다.
+5. 갤럭시라면 아래 "삼성 루틴" 두 개를 만듭니다.
+6. Google Play 서비스가 있어야 동작합니다 (FCM 수신, QR 스캐너).
+
+같은 휴대폰에 디버그 빌드가 설치되어 있으면 서명이 달라 업데이트 설치가 되지 않습니다. 디버그 빌드를 삭제한 뒤 설치하고 기기 등록을 다시 합니다.
+
+### 릴리스 서명 키 (개발 PC)
+
+- 서명 키: `%USERPROFILE%\.gamemodebridge\release.jks`, 비밀번호: `android\keystore.properties` (둘 다 커밋하지 않음)
+- 이 두 파일이 없으면 같은 앱으로 업데이트할 수 없습니다 (휴대폰에서 삭제 후 재설치와 재등록 필요). 두 파일을 함께 안전한 곳에 백업합니다.
+- 인증서 지문 (공개 값): SHA-1 `ff:ec:da:4c:8f:ba:bc:a0:18:7f:65:49:83:f4:c0:48:c7:47:82:43`
+- Firebase 콘솔 → 프로젝트 설정 → 내 앱 → **SHA 인증서 지문 추가**에 위 SHA-1을 등록하고, Google Cloud 콘솔의 Android API 키를 패키지 이름 `com.gamemodebridge`와 이 지문으로 제한합니다 (CLAUDE.md 11장 최소 권한)
+
+---
+
+## PC 앱 사용
+
+### 처음 설정 (개발 PC, 소스로 실행할 때)
+
+1. 서비스 계정 키 가져오기: 트레이 메뉴 **서비스 계정 가져오기...** 또는
    ```
    .venv\Scripts\python.exe -m gmb import-sa <서비스 계정 JSON 경로>
    ```
-   - 키는 DPAPI로 암호화되어 `%APPDATA%\GameModeBridge\sa.bin`에 저장됩니다.
-   - 가져온 뒤 원본 JSON 파일은 직접 삭제하세요.
-2. 휴대폰 기기 등록: 트레이 메뉴의 **기기 등록...** (또는 `python -m gmb register`)
+   - 키는 DPAPI로 암호화되어 `%APPDATA%\GameModeBridge\sa.bin`에 저장됩니다. 가져온 뒤 원본 JSON 파일은 직접 삭제하세요.
+2. 휴대폰 기기 등록: 트레이 메뉴 **기기 등록...** (또는 `python -m gmb register`)
    - 휴대폰 앱의 기기 등록 화면에서 QR을 스캔하고, 새 토픽 구독 성공이 표시되면 PC 창에서 **휴대폰 등록 완료**를 누릅니다.
-3. 감지할 프로그램 지정: 트레이 메뉴의 **감지할 프로그램 관리...** → **exe 파일 추가...**
+3. 감지할 프로그램 지정: 트레이 메뉴 **감지할 프로그램 관리...** → **exe 파일 추가...**
    - 게임은 런처가 아닌 실제 게임 실행 파일을 고릅니다. 이름을 모르면 게임을 실행한 상태에서 `python -m gmb list-proc 검색어` 로 확인합니다.
-4. 실제 발송 모드: 트레이 메뉴의 **설정 파일 열기**에서 `"mode": "live"` 로 바꾸고 앱을 다시 실행합니다. (기본값은 발송하지 않는 `dry-run`)
+4. 트레이 메뉴 **실제 발송** 을 체크합니다. (기본값은 발송하지 않는 드라이런)
 
 ### 트레이 메뉴
 
@@ -49,6 +93,8 @@ PC에서 지정한 프로그램(게임)이 실행되면 휴대폰의 게임 모�
 | 감지 일시정지 | 게임 중이었다면 off를 보낸 뒤 감지를 멈춤 |
 | 감지할 프로그램 관리... | 파일 탐색기로 exe 추가, 제거. 저장 즉시 반영 |
 | 기기 등록... | QR 재등록 (완료를 누르기 전까지 기존 연결 유지) |
+| 서비스 계정 가져오기... | 서비스 계정 키 JSON을 골라 DPAPI로 암호화 저장 |
+| 실제 발송 | 체크하면 FCM으로 실제 발송, 해제하면 드라이런(기록만) |
 | 설정 파일 열기 | `%APPDATA%\GameModeBridge\config.json` |
 | 종료 | 게임 중이었다면 off를 보낸 뒤 종료 |
 

@@ -94,15 +94,22 @@ class App:
 
     def _menu(self) -> pystray.Menu:
         item = pystray.MenuItem
-        mode = "실제 발송" if self.cfg.mode == "live" else "드라이런 (발송 안 함)"
+
+        def summary(_):
+            mode = "실제 발송" if self.cfg.mode == "live" else "드라이런 (발송 안 함)"
+            return f"감지 대상 {len(self.bridge.detector.games)}개 / {mode}"
+
         return pystray.Menu(
             item(lambda _: f"상태: {self.bridge.status}", None, enabled=False),
-            item(lambda _: f"감지 대상 {len(self.bridge.detector.games)}개 / {mode}", None, enabled=False),
+            item(summary, None, enabled=False),
             pystray.Menu.SEPARATOR,
             item("현재 상태 다시 보내기", self._on_resend),
             item("감지 일시정지", self._on_toggle_pause, checked=lambda _: self.bridge.paused),
             item("감지할 프로그램 관리...", self._on_games),
+            pystray.Menu.SEPARATOR,
             item("기기 등록...", self._on_register),
+            item("서비스 계정 가져오기...", self._on_import_sa),
+            item("실제 발송", self._on_toggle_live, checked=lambda _: self.cfg.mode == "live"),
             item("설정 파일 열기", lambda: os.startfile(self.config_path)),
             pystray.Menu.SEPARATOR,
             item("종료", self._on_quit),
@@ -160,6 +167,21 @@ class App:
 
     def _on_games(self) -> None:
         self._open_window(lambda: show_games_window(self))
+
+    def _reload_sender(self) -> None:
+        """발송자를 다시 만들고 현재 상태를 다시 보냄 (서비스 계정이나 모드가 바뀐 경우)."""
+        with self.lock:
+            self.messenger.sender = self._make_sender()
+            self.bridge.resend_current()
+
+    def _on_toggle_live(self) -> None:
+        self.cfg = config_mod.save_mode(self.config_path, "dry-run" if self.cfg.mode == "live" else "live")
+        log.info("모드 변경: %s", self.cfg.mode)
+        self._reload_sender()
+        self._refresh()
+
+    def _on_import_sa(self) -> None:
+        self._open_window(lambda: show_import_sa_window(self))
 
     def apply_games(self, games: list[str]) -> None:
         self.cfg = config_mod.save_games(self.config_path, games)
@@ -233,6 +255,44 @@ def show_games_window(app: App) -> None:
 
     refresh()
     root.mainloop()
+
+
+def show_import_sa_window(app: App) -> None:
+    """서비스 계정 JSON을 골라 DPAPI로 암호화 저장함. 원본 파일은 자동 삭제하지 않고 안내만 함."""
+    import tkinter as tk
+    from tkinter import filedialog, messagebox
+
+    from gmb.secret_store import validate_service_account
+
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    try:
+        path = filedialog.askopenfilename(parent=root, title="서비스 계정 키 JSON 선택",
+                                          filetypes=[("JSON", "*.json")])
+        if not path:
+            return
+        raw = Path(path).read_bytes()
+        try:
+            info = validate_service_account(raw)
+        except ValueError as e:
+            messagebox.showerror("가져오기 실패", str(e), parent=root)
+            return
+        warning = ""
+        if "firebase-adminsdk" in info["client_email"]:
+            warning = "\n\n경고: Firebase Admin SDK 기본 계정은 권한이 넓습니다. FCM 발송 역할만 가진 전용 계정을 권장합니다."
+        sa_path = app.cfg.sa_store_path or default_sa_path()
+        DpapiServiceAccountStore(sa_path).save(raw)
+        log.info("서비스 계정 가져오기 완료: %s", info["client_email"])
+        app._reload_sender()
+        messagebox.showinfo(
+            "가져오기 완료",
+            f"{info['client_email']}\n암호화하여 저장했습니다.\n\n"
+            f"원본 파일은 더 이상 필요 없으므로 직접 삭제하고 휴지통도 비워 주세요:\n{path}{warning}",
+            parent=root,
+        )
+    finally:
+        root.destroy()
 
 
 def main(config_path: Path | None = None) -> None:

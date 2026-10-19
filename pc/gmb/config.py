@@ -105,13 +105,21 @@ def load_or_create(path: Path) -> Config:
     return load(path)
 
 
-def save_games(path: Path, games: list[str]) -> Config:
-    """감지 목록만 바꿔 저장함. 다른 설정 값은 그대로 둠. 검증에 실패하면 저장하지 않음."""
+def _update(path: Path, key: str, value) -> Config:
+    """설정 값 하나만 바꿔 저장함. 다른 설정 값은 그대로 둠. 검증에 실패하면 저장하지 않음."""
     data = _read(path)
-    data["games"] = list(_unique(games))
+    data[key] = value
     cfg = parse(data)
     _write(path, data)
     return cfg
+
+
+def save_games(path: Path, games: list[str]) -> Config:
+    return _update(path, "games", list(_unique(games)))
+
+
+def save_mode(path: Path, mode: str) -> Config:
+    return _update(path, "mode", mode)
 
 
 def add_games(current: list[str], picked_paths: list[str]) -> tuple[list[str], list[str]]:

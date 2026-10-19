@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="시뮬레이터 (디버그 전용)"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="정상 메시지만 알림이 뜨고 나머지는 폐기되어야 합니다."
+        android:textSize="13sp" />
+
+    <Button android:id="@+id/simOn" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="정상 켜기" />
+    <Button android:id="@+id/simOff" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="정상 끄기" />
+    <Button android:id="@+id/simStale" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="오래된 메시지 (5분 전)" />
+    <Button android:id="@+id/simReplay" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="재전송 (마지막 정상 메시지 다시 보내기)" />
+    <Button android:id="@+id/simReorder" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="순서 역전" />
+    <Button android:id="@+id/simTamper" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="위변조" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/simLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textSize="14sp" />
+    </ScrollView>
+</LinearLayout>

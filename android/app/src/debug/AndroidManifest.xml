@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- debug 빌드에만 합쳐지는 매니페스트. 릴리스 빌드에는 시뮬레이터가 포함되지 않음 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <activity
+            android:name=".SimulatorActivity"
+            android:exported="false" />
+    </application>
+
+</manifest>

@@ -11,7 +11,7 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 | 0단계: 환경 구성 | 완료 | `64b2020` |
 | 1단계: 루틴 감지 검증 | 생략 (사용자 결정) | `419f101` |
 | 2단계: 암호화 모듈 | 완료 | `e76053c` |
-| 3단계: 안드로이드 수신 처리 | 시작 전 | |
+| 3단계: 안드로이드 수신 처리 | 진행 중 (Firebase 제외 부분 완료) | 아래 커밋 목록 참고 |
 | 4단계 이후 | 시작 전 | |
 
 ---
@@ -110,6 +110,25 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
   - ◦ 다른 USB 포트에 꽂으면 장치 경로가 달라져 같은 조치가 다시 필요할 수 있음
 - 결과: `adb devices`에 `HA2ABNWM` 인식, USB 디버깅 허용 후 `gradlew.bat installDebug`로 설치 및 실행 확인
 
+### □ 3단계 중 Firebase 제외 부분
+- `MessageProcessor.kt`: 5장 수신 처리 순서 1~7 구현, 폐기 사유 코드 `VERSION`, `FORMAT`, `AUTH`, `STATE`, `STALE`, `FUTURE`, `SEQ`
+  - ◦ 평문은 kotlinx.serialization의 JsonElement로 직접 읽음 (직렬화 컴파일러 플러그인 불필요). 라이브러리를 앱 의존성으로 옮김
+  - ◦ 게임 이름 정리: 제어 문자와 서식 문자 제거, 키워드는 대소문자 무시하고 변화가 없을 때까지 반복 제거, 코드 포인트 기준 50자
+- `SeqStore.kt`: 마지막 처리 순번을 SharedPreferences에 동기 저장 (알림 게시 전 저장)
+- `NotificationHelper.kt`: 루틴 키워드 상수, 채널 중요도 기본, 잠금 화면 비공개, `setTimeoutAfter`로 5초 후 자동 삭제
+  - ◦ minSdk 26이므로 androidx NotificationCompat 대신 기본 `Notification.Builder` 사용 (의존성 추가 없음)
+- `StatusStore.kt`, `MainActivity.kt`: 알림 권한 상태, 마지막 처리 결과(앱이 확인 가능한 범위만), 수동 게임 모드 끄기, 알림 권한 요청, 배터리 최적화 설정 열기
+- debug 전용: `SimulatorActivity.kt`, `EnvelopeFactory.kt` (실행마다 새로 만드는 테스트 키, 별도 순번 저장소 `gmb_sim_seq`)
+- 테스트
+  - ◦ `gradlew.bat testDebugUnitTest`: 28개 통과 (MessageProcessorTest 23, CryptoManagerTest 4, SmokeTest 1)
+  - ◦ MessageProcessorTest는 debug 전용 EnvelopeFactory를 쓰므로 `src/testDebug`에 둠
+  - ◦ `gradlew.bat assembleRelease` 성공. 릴리스 APK에 SimulatorActivity와 EnvelopeFactory 없음, 권한은 POST_NOTIFICATIONS 하나뿐임을 apkanalyzer로 확인
+- 태블릿 실기기 확인 (사용자 확인)
+  - ◦ 정상 켜기와 끄기: 알림이 뜨고 5초 후 사라짐
+  - ◦ 오래된 메시지 STALE, 재전송 SEQ, 순서 역전 시 늦게 온 켜기 SEQ, 위변조 AUTH로 폐기됨
+  - ◦ 처음 만든 재전송 버튼은 직전 메시지(오래된 메시지)를 다시 보내 STALE로 걸렸음. 마지막 정상 메시지를 다시 보내도록 수정 후 SEQ 확인
+- 남은 일: Firebase 연결, 토픽 구독, `GameModeMessagingService` (사용자의 `google-services.json` 필요)
+
 ---
 
 ## 주요 결정 사항
@@ -131,11 +150,9 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 
 ## 다음 작업
 
-### □ 3단계: 안드로이드 수신 처리
-- Firebase 없이 먼저 진행 가능한 부분
-  - ◦ `MessageProcessor` (5장 수신 처리 순서), `SeqStore` (순번 저장)
-  - ◦ 디버그 시뮬레이터 화면, 수동 게임 모드 끄기 버튼, 상태 표시, 알림 권한 요청
-  - ◦ kotlinx.serialization을 앱 의존성으로 옮기고 직렬화 플러그인(Kotlin 2.2.10에 맞춤) 추가
+### □ 3단계: 안드로이드 수신 처리 (남은 부분)
+- Firebase 연결, 토픽 구독, `GameModeMessagingService`가 `MessageProcessor`와 `StatusStore`를 사용하도록 연결
+- 태블릿은 중국 내수용 ROM이므로 백그라운드 수신 시 배터리 최적화 예외, 자동 실행 허용 확인
 - 사용자가 해야 할 일 (Firebase 연결 전 필요)
   - ◦ Firebase 콘솔에서 프로젝트 생성
   - ◦ 안드로이드 앱 등록 (패키지 이름 `com.gamemodebridge`)

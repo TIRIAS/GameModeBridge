@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 상태 표시줄 알림 아이콘 (게임 패드 모양 단색) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M7,7h10a5,5 0,0 1,0 10h-1.5l-2,-2h-3l-2,2H7A5,5 0,0 1,7 7zM7,10v1.5H5.5v1H7V14h1v-1.5h1.5v-1H8V10zM15.5,10.5a1,1 0,1 0,0.01 0zM17.5,12.5a1,1 0,1 0,0.01 0z" />
+</vector>

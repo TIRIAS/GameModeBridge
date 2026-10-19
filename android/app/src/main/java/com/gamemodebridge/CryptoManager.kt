@@ -8,7 +8,7 @@ import javax.crypto.spec.GCMParameterSpec
 
 // 봉투 형식 공통 값 (PC gmb/crypto.py와 같아야 함)
 const val PROTOCOL_VERSION = "1"
-private val AAD = "GMB-v1".toByteArray(Charsets.US_ASCII)
+internal val AAD = "GMB-v1".toByteArray(Charsets.US_ASCII)
 private const val IV_SIZE = 12
 private const val TAG_BITS = 128
 

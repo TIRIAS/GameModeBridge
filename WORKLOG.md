@@ -91,6 +91,25 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
   - ◦ PC: `pytest` 25 passed
   - ◦ 안드로이드: `gradlew.bat testDebugUnitTest` CryptoManagerTest 4개, SmokeTest 1개 통과
 
+## 2026-10-19 작업 내용
+
+### □ 테스트 기기 연결 (안드로이드 태블릿)
+- 기기: Lenovo Legion Y700 (TB322FC), Android 15 (API 35), ZUXOS 1.1.10 중국 내수용 ROM
+- Google Play 서비스와 Play 스토어 있음 (FCM 수신 가능)
+- 갤럭시가 아니므로 삼성 모드 및 루틴 동작은 확인할 수 없음. 메시지 검증과 알림 게시까지 확인 가능함
+- 중국 내수용 ROM은 백그라운드 제한이 강할 수 있으므로 FCM 수신 시험 시 배터리 최적화 예외, 자동 실행 허용 확인 필요
+- Wi-Fi를 쓸 수 없어 USB 디버깅으로 연결함
+
+### □ USB 디버깅 인식 문제 해결
+- 증상: Windows가 태블릿 ADB 인터페이스에 일반 WinUSB 드라이버를 붙였으나 `adb devices`에 기기가 나오지 않음
+- 원인: 장치에 adb 인터페이스 GUID가 등록되지 않아 adb가 장치를 찾지 못함
+- 조치: 관리자 권한으로 해당 장치 하나의 레지스트리에 값을 추가하고 장치를 재시작함 (드라이버 설치 없음)
+  - ◦ 위치: `HKLM\SYSTEM\CurrentControlSet\Enum\USB\VID_17EF&PID_7F41&MI_01\6&2A38517D&0&0001\Device Parameters`
+  - ◦ 값: `DeviceInterfaceGUIDs` (REG_MULTI_SZ) = `{F72FE0D4-CBCB-407d-8814-9ED673D0DD6B}`
+  - ◦ 되돌리기: 위 값만 삭제하면 됨
+  - ◦ 다른 USB 포트에 꽂으면 장치 경로가 달라져 같은 조치가 다시 필요할 수 있음
+- 결과: `adb devices`에 `HA2ABNWM` 인식, USB 디버깅 허용 후 `gradlew.bat installDebug`로 설치 및 실행 확인
+
 ---
 
 ## 주요 결정 사항

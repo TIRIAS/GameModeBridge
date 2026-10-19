@@ -269,6 +269,8 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 - README: 다른 PC 설치, 이전 PC 정리, 다른 휴대폰 설치, 릴리스 서명 키 백업과 SHA-1 등록 안내
 - CLAUDE.md 11장: 서명 키와 비밀번호 파일, PC별 서비스 계정 키 관리 추가
 - 테스트: PC `pytest` 120 passed, 안드로이드 `testDebugUnitTest` 통과, 새 exe 실행 확인
+- 서명 APK 실기기 확인 (사용자 확인): 태블릿의 디버그 앱 삭제 후 APK 파일을 Download 폴더에 넣고 파일 관리자로 설치, 재등록, 알림 수신 정상 (R8 적용 릴리스 빌드에서도 동작)
+- 배포 파일을 사용자 요청으로 `E:\개인앱개발\`에 복사 (`GameModeBridge.exe`, `GameModeBridge.apk`)
 
 ---
 

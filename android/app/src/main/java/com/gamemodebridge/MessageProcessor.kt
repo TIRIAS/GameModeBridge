@@ -7,7 +7,13 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
 
 /** 폐기 사유 코드. 로그에는 이 코드만 남기고 메시지 내용은 남기지 않음 */
-enum class DiscardReason { VERSION, FORMAT, AUTH, STATE, STALE, FUTURE, SEQ }
+enum class DiscardReason {
+    VERSION, FORMAT, AUTH, STATE, STALE, FUTURE, SEQ,
+    /** 등록된 키가 없음 */
+    NOT_REGISTERED,
+    /** 등록된 토픽이 아닌 곳에서 온 메시지 (교체 전 이전 토픽 등) */
+    TOPIC,
+}
 
 sealed interface ProcessResult {
     data class Accepted(val state: GameState, val seq: Long, val notify: NotifyResult) : ProcessResult

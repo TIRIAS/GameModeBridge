@@ -29,6 +29,10 @@ class MainActivity : Activity() {
             refresh()
         }
 
+        findViewById<Button>(R.id.openRegistration).setOnClickListener {
+            startActivity(Intent(this, RegistrationActivity::class.java))
+        }
+
         findViewById<Button>(R.id.requestPermission).setOnClickListener { requestNotificationPermission() }
 
         // 배터리 최적화 예외 목록 화면을 엶 (별도 권한이 필요 없는 방식)
@@ -59,6 +63,13 @@ class MainActivity : Activity() {
     }
 
     private fun refresh() {
+        val reg = PrefsRegStateStore(this).load()
+        findViewById<TextView>(R.id.registrationStatus).text = when {
+            reg.activeTopic != null && reg.pendingTopic != null -> "기기 등록: 등록됨, 새 등록 확정 대기 중"
+            reg.activeTopic != null -> "기기 등록: 등록됨"
+            reg.pendingTopic != null -> "기기 등록: 확정 대기 중 (PC의 첫 메시지 수신 시 확정)"
+            else -> "기기 등록: 등록 안 됨"
+        }
         findViewById<TextView>(R.id.permissionStatus).text =
             if (notifier.isEnabled()) "알림 권한: 허용됨" else "알림 권한: 차단됨 (알림을 띄울 수 없음)"
         findViewById<TextView>(R.id.lastResult).text = "마지막 처리: ${status.last()}"

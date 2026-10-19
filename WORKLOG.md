@@ -12,7 +12,8 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 | 1단계: 루틴 감지 검증 | 생략 (사용자 결정) | `419f101` |
 | 2단계: 암호화 모듈 | 완료 | `e76053c` |
 | 3단계: 안드로이드 수신 처리 | 완료 (실제 FCM 수신은 4, 5단계에서 확인) | `656e871` 외 |
-| 4단계 이후 | 시작 전 | |
+| 4단계: 기기 등록 | 완료 (새 키 확정은 5단계 첫 발송에서 확인) | 아래 기록 참고 |
+| 5단계 이후 | 시작 전 | |
 
 ---
 
@@ -144,6 +145,34 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
   - ◦ 태블릿 logcat에서 `FirebaseApp initialization successful` 확인
   - ◦ 실제 FCM 메시지 수신은 키와 토픽이 생기는 4단계, PC 발송이 생기는 5단계에서 확인함
 
+### □ 4단계: 기기 등록
+- PC
+  - ◦ `secret_store.py`: keyring(Windows 자격 증명 관리자)에 공유 키와 토픽 저장. `Credentials` 출력 시 키를 숨김
+  - ◦ `state_store.py`: 순번 보존 (`%APPDATA%/GameModeBridge/state.json`). 재등록 시 순번 초기화가 필요해 5단계에서 4단계로 당겨 구현함
+  - ◦ `registration.py`: 키와 토픽 생성, QR 문자열 `GMB1:<토픽>:<키>`, 등록 절차(완료 시 확정, 취소 시 기존 유지, `--revoke` 시 즉시 삭제), tkinter QR 창
+  - ◦ QR 창은 60초 후 창을 닫는 대신 QR과 문자열만 숨기도록 변경함 (창을 닫으면 완료 버튼도 사라지므로). CLAUDE.md 6장에 반영
+  - ◦ `__main__.py`: `python -m gmb register [--revoke]`
+- 안드로이드
+  - ◦ `KeyStoreManager.kt`: `KeyVault` 인터페이스와 Keystore 구현. 키는 복호화 전용(PURPOSE_DECRYPT, GCM)으로 가져옴
+  - ◦ `DeviceRegistration.kt`: QR 형식 검증(`QrPayload`), 키 슬롯 2개(`gmb_key_a`, `gmb_key_b`)로 active와 pending 관리
+    - 새 등록은 pending 슬롯에 키를 넣고 새 토픽 구독. 구독 실패 시 pending만 지우고 기존 연결 유지
+    - 메시지가 온 토픽(`/topics/...`)으로 사용할 키를 고름. pending 토픽에서 온 첫 정상 메시지의 순번을 저장하는 시점에 교체 확정 (이전 토픽 구독 해제, 이전 키 삭제, 순번 새로 시작)
+    - 긴급 재등록: 키, 토픽, 순번 모두 즉시 삭제
+    - 폐기 사유 추가: `NOT_REGISTERED`, `TOPIC`
+  - ◦ `RegistrationActivity.kt`: Google 코드 스캐너(16.1.0, 카메라 권한 불필요), 문자열 직접 입력(자동 완성과 추천 끔), 긴급 재등록 확인 창. 토픽은 앞 8자만 표시
+  - ◦ 메인 화면에 기기 등록 버튼과 등록 상태 표시
+- 보안 확인
+  - ◦ 릴리스 APK 권한 목록에 카메라 등 추가 권한 없음
+  - ◦ 외부 공개 구성 요소는 MainActivity와 FCM 수신기(c2dm SEND 권한으로 보호)뿐. CLAUDE.md 11장에 FCM 수신기 예외 기록
+- 테스트
+  - ◦ PC `pytest`: 36 passed
+  - ◦ 안드로이드 `testDebugUnitTest`: 41개 통과 (DeviceRegistrationTest 10, QrPayloadTest 3 추가)
+- 실기기 확인
+  - ◦ PC `register` 실행, 태블릿에서 QR 스캔, 새 토픽 구독 성공, PC에서 완료 누름
+  - ◦ PC keyring에 키와 토픽 저장됨, 태블릿은 확정 대기(pending) 상태
+  - ◦ PC와 태블릿 토픽 일치 확인 (값을 출력하지 않고 비교)
+  - ◦ 키 일치와 확정은 5단계에서 PC가 새 키로 첫 메시지를 보낼 때 확인함
+
 ---
 
 ## 주요 결정 사항
@@ -165,10 +194,11 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 
 ## 다음 작업
 
-### □ 4단계: 기기 등록
-- PC `register` 명령 (키와 토픽 생성, QR 표시, 완료 확인 후 keyring 저장), `register --revoke`
-- 안드로이드 `RegistrationActivity` (QR 스캔과 형식 검증, Keystore 가져오기, 토픽 구독, 첫 정상 메시지 수신 시 확정)
-- Google 코드 스캐너(ML Kit) 의존성 추가 필요 (3장에 정한 의존성)
+### □ 5단계: PC 발송 모듈
+- `import-sa` 명령 (서비스 계정 JSON을 DPAPI로 암호화 저장)
+- `sender.py` FCM 발송 (priority HIGH, ttl 60s, collapse_key, 토큰 재사용, 재시도)
+- 첫 발송으로 태블릿의 새 키 확정과 키 일치 확인, 토픽 발송 지연 측정
+- 사용자가 해야 할 일: Firebase 콘솔에서 FCM 발송 역할만 가진 전용 서비스 계정 생성 및 키 JSON 발급
 - 태블릿은 중국 내수용 ROM이므로 백그라운드 수신 시 배터리 최적화 예외, 자동 실행 허용 확인
 
 ### □ 참고

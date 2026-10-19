@@ -11,19 +11,10 @@ import com.google.firebase.messaging.RemoteMessage
 class GameModeMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
-        val status = StatusStore(this)
-        val key = KeyStoreManager.currentKey()
-        if (key == null) {
-            // 기기 등록(4단계) 전에는 복호화할 키가 없음
-            Log.i(TAG, "폐기: NOT_REGISTERED")
-            status.record("폐기: NOT_REGISTERED (기기 등록 전)")
-            return
-        }
-        val processor = MessageProcessor(AesGcmCryptoManager(key), PrefsSeqStore(this), AndroidNotificationHelper(this))
-        val result = processor.process(message.data)
+        val result = DeviceRegistration.create(this).handleMessage(message.from, message.data)
         // 폐기 시 사유 코드만 남기고 메시지 내용은 남기지 않음
         if (result is ProcessResult.Discarded) Log.i(TAG, "폐기: ${result.reason}")
-        status.record(result.describe())
+        StatusStore(this).record(result.describe())
     }
 
     // 토픽 방식이므로 등록 토큰(onNewToken)은 다루지 않음

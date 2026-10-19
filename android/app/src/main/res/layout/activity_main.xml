@@ -18,6 +18,13 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/registrationStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textSize="16sp" />
+
+        <TextView
             android:id="@+id/permissionStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -44,6 +51,12 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="수동 게임 모드 끄기" />
+
+        <Button
+            android:id="@+id/openRegistration"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="기기 등록" />
 
         <Button
             android:id="@+id/requestPermission"

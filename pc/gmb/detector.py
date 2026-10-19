@@ -23,10 +23,14 @@ def display_name(exe: str) -> str:
 
 class Detector:
     def __init__(self, games: tuple[str, ...], grace_sec: float = GRACE_SEC):
-        # 비교는 소문자로, 표시는 설정에 적은 표기로 함
-        self.games = {g.lower(): g for g in games}
+        self.set_games(games)
         self.grace_sec = grace_sec
         self.reset()
+
+    def set_games(self, games) -> None:
+        """감지 목록 변경. 게임 중 상태는 유지하며, 빠진 게임이 실행 중이면 다음 감지부터 종료로 처리함."""
+        # 비교는 소문자로, 표시는 설정에 적은 표기로 함
+        self.games = {g.lower(): g for g in games}
 
     def reset(self) -> None:
         self.playing = False

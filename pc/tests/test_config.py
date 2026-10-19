@@ -35,8 +35,6 @@ def test_invalid_exe_names_rejected(name):
 
 @pytest.mark.parametrize("data", [
     [],
-    {},
-    {"games": []},
     {"games": "a.exe"},
     {"games": ["a.exe"], "poll_interval_sec": 0},
     {"games": ["a.exe"], "poll_interval_sec": 61},
@@ -59,3 +57,46 @@ def test_load_missing_and_broken_file(tmp_path):
     good = tmp_path / "good.json"
     good.write_text(json.dumps({"games": ["a.exe"]}), encoding="utf-8")
     assert config.load(good).games == ("a.exe",)
+
+
+def test_empty_games_allowed():
+    # 트레이에서 나중에 추가할 수 있으므로 빈 목록도 허용함
+    assert config.parse({}).games == ()
+    assert config.parse({"games": []}).games == ()
+
+
+@pytest.mark.parametrize("name", ["검은사막.exe", "Game Launcher (x64).exe", "eldenring.exe"])
+def test_unicode_and_spaces_allowed(name):
+    assert config.is_valid_exe_name(name)
+
+
+def test_load_or_create_writes_default(tmp_path):
+    path = tmp_path / "sub" / "config.json"
+    cfg = config.load_or_create(path)
+    assert path.exists() and cfg.games == () and cfg.mode == "dry-run"
+
+
+def test_save_games_keeps_other_settings(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"games": ["a.exe"], "mode": "live", "poll_interval_sec": 3}), encoding="utf-8")
+    cfg = config.save_games(path, ["b.exe", "B.EXE", "c.exe"])
+    assert cfg.games == ("b.exe", "c.exe")
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    assert saved == {"games": ["b.exe", "c.exe"], "mode": "live", "poll_interval_sec": 3}
+
+
+def test_save_games_rejects_invalid_without_writing(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"games": ["a.exe"]}), encoding="utf-8")
+    with pytest.raises(config.ConfigError):
+        config.save_games(path, ["bad;name.exe"])
+    assert json.loads(path.read_text(encoding="utf-8"))["games"] == ["a.exe"]
+
+
+def test_add_games_from_picked_paths():
+    games, rejected = config.add_games(
+        ["EXCEL.EXE"],
+        [r"C:\Program Files\Office\excel.exe", r"D:\Games\Elden Ring\eldenring.exe", r"C:\x\bad&name.exe"],
+    )
+    assert games == ["EXCEL.EXE", "eldenring.exe"]  # 대소문자만 다른 중복은 추가 안 함
+    assert rejected == ["bad&name.exe"]

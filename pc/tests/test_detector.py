@@ -57,6 +57,20 @@ def test_unrelated_processes_ignored():
     assert run(Detector((A,)), [{"explorer.exe", "steam.exe"}]) == ["off"]
 
 
+def test_set_games_adds_new_game_immediately():
+    d = Detector(())
+    assert d.update({A}, 0)[0] == "off"
+    d.set_games((A,))
+    assert d.update({A}, 2)[0] == "on"
+
+
+def test_set_games_removing_running_game_ends_after_grace():
+    d = Detector((A,))
+    d.update({A}, 0)
+    d.set_games(())
+    assert [d.update({A}, t)[0] for t in (2, 4, 6)] == ["on", "on", "off"]
+
+
 # ---------- Bridge: 상태 동기화 규칙 ----------
 
 class Recorder:

@@ -1,7 +1,8 @@
 """진입점.
 
 사용:
-  python -m gmb run [--config 경로] [--mode dry-run|live]
+  python -m gmb                 트레이 앱 실행 (exe 실행 시 기본 동작)
+  python -m gmb run [--config 경로] [--mode dry-run|live]   트레이 없이 감지만 실행
   python -m gmb list-proc [검색어]
   python -m gmb register [--revoke]
   python -m gmb import-sa <서비스 계정 JSON 경로>
@@ -22,7 +23,6 @@ from gmb.providers import ProcessQueryError, PsutilProvider
 from gmb.secret_store import DpapiServiceAccountStore, KeyringSecretStore, default_sa_path, validate_service_account
 from gmb.sender import DryRunSender, FcmSender, StateMessenger
 
-DEFAULT_CONFIG = Path(__file__).resolve().parents[1] / "config.json"
 log = logging.getLogger("gmb")
 
 
@@ -49,9 +49,22 @@ def _single_instance():
     return handle
 
 
+def cmd_tray(args) -> None:
+    path = Path(args.config) if getattr(args, "config", None) else config_mod.default_path()
+    try:
+        cfg = config_mod.load_or_create(path)
+    except config_mod.ConfigError as e:
+        sys.exit(f"설정 오류: {e}")
+    _setup_logging(cfg.log_path)
+    mutex = _single_instance()  # noqa: F841 (실행 중 유지)
+    from gmb import tray
+
+    tray.main(path)
+
+
 def cmd_run(args) -> None:
     try:
-        cfg = config_mod.load(Path(args.config))
+        cfg = config_mod.load_or_create(Path(args.config))
     except config_mod.ConfigError as e:
         sys.exit(f"설정 오류: {e}")
     mode = args.mode or cfg.mode
@@ -123,9 +136,9 @@ def cmd_import_sa(args) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="gmb")
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command")
     run = sub.add_parser("run", help="게임 감지 실행")
-    run.add_argument("--config", default=str(DEFAULT_CONFIG))
+    run.add_argument("--config", default=str(config_mod.default_path()))
     run.add_argument("--mode", choices=config_mod.MODES, help="설정 파일의 mode보다 우선함")
     run.set_defaults(func=cmd_run)
     lp = sub.add_parser("list-proc", help="실행 중인 프로세스 이름 검색")
@@ -137,8 +150,11 @@ def main() -> None:
     sa = sub.add_parser("import-sa", help="서비스 계정 JSON을 암호화하여 저장")
     sa.add_argument("path")
     sa.set_defaults(func=cmd_import_sa)
+    tray_p = sub.add_parser("tray", help="트레이 앱 실행 (기본)")
+    tray_p.add_argument("--config")
+    tray_p.set_defaults(func=cmd_tray)
     args = parser.parse_args()
-    args.func(args)
+    (getattr(args, "func", None) or cmd_tray)(args)
 
 
 if __name__ == "__main__":

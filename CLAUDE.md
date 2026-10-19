@@ -215,7 +215,7 @@ GameModeBridge/
 │   ├── .venv/                    # 전용 가상환경 (커밋 금지)
 │   ├── requirements.txt
 │   ├── requirements-dev.txt
-│   ├── config.example.json       # 설정 예시 (실제 config.json은 커밋 금지)
+│   ├── config.example.json       # 설정 예시 (실제 설정은 %APPDATA%/GameModeBridge/config.json)
 │   ├── gmb/
 │   │   ├── __main__.py           # 진입점 (run, register, import-sa, list-proc 명령)
 │   │   ├── config.py             # 설정 로드 및 검증
@@ -558,7 +558,8 @@ GameModeBridge/
 - **완료 기준**: 모든 시뮬레이터 시나리오와 fake_game.exe 테스트가 기대대로 동작함
 
 ### □ 7단계: 트레이 앱 통합
-- 트레이 메뉴: 현재 상태 (5장 표시 기준), 현재 상태 다시 보내기, 감지 일시정지, 기기 등록, 설정 파일 열기, 종료
+- 트레이 메뉴: 현재 상태 (5장 표시 기준), 현재 상태 다시 보내기, 감지 일시정지, 감지할 프로그램 관리, 기기 등록, 설정 파일 열기, 종료
+- 감지할 프로그램 관리: 파일 탐색기로 exe를 골라 추가하고 저장 즉시 감지기에 반영함 (사용자 요청으로 8단계 게임 목록 편집 UI를 당겨 구현)
 - 앱 종료 시 게임 중 상태였다면 off 신호 발송 후 종료
 - PyInstaller로 exe 생성, 시작 프로그램 등록 방법을 README에 정리
 - 11장 보안 점검 체크리스트를 모두 확인함
@@ -567,21 +568,24 @@ GameModeBridge/
 ### □ 8단계: 마무리 (선택)
 - PC 절전 진입 시 off 발송 처리 (절전 해제 후 동기화는 6단계에서 구현함)
 - 휴대폰 앱에 최근 수신 기록 표시 (게임 이름, 시각, 처리 결과)
-- 게임 목록 편집 UI
+- 게임 목록 편집 UI (7단계에서 구현함)
 
 ---
 
-## 9. 설정 파일 (pc/config.json)
+## 9. 설정 파일 (%APPDATA%/GameModeBridge/config.json)
 
 ```json
 {
-  "games": ["VALORANT.exe", "eldenring.exe"],
+  "games": ["VALORANT-Win64-Shipping.exe", "eldenring.exe"],
   "poll_interval_sec": 2,
   "mode": "dry-run",
   "sa_store_path": "%APPDATA%/GameModeBridge/sa.bin",
   "log_path": "%APPDATA%/GameModeBridge/logs/gamemode.log"
 }
 ```
+- 위치: exe로 배포하면 pc 폴더가 없으므로 %APPDATA% 아래에 둠. 파일이 없으면 기본값(감지 목록 비어 있음, dry-run)으로 만듦
+- games는 트레이의 감지할 프로그램 관리에서 편집함. 비어 있어도 됨 (항상 대기 상태)
+- games 항목은 파일 이름만 비교함 (대소문자 무시). 한글 등 유니코드 글자는 허용하고 경로 구분자, 따옴표, 셸 특수 문자는 거부함
 - 공유 키와 토픽 이름은 설정 파일이 아닌 keyring에 저장함
 - 서비스 계정은 원본 경로가 아닌 DPAPI 암호화 파일 경로만 기록함
 

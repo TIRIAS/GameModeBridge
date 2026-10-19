@@ -222,7 +222,8 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 - `config.py`, `detector.py`, `providers.py`, `list-proc` 명령, 중복 실행 방지
 - 5장 상태 동기화 규칙 (앱 시작, 실패 후 30초마다 현재 상태, 절전 해제, 재시도 중 상태 변경)
 - 시뮬레이터 multi, flapping 시나리오와 fake_game.exe
-- 사용자 할 일: 서비스 계정 원본 JSON(`E:\개인앱개발\gamemodebridge-f6d7f55b67eb.json`) 삭제 확인, PC 시간 동기화 (선택)
+- 사용자 할 일: PC 시간 동기화 (선택)
+- 서비스 계정 원본 JSON은 사용자가 삭제함 (2026-10-19 확인)
 
 ### □ 참고
 - 새 터미널에서 `gradlew.bat`가 JDK를 못 찾으면 `JAVA_HOME` 설정 전에 열린 창이므로 새로 열면 됨

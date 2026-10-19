@@ -11,7 +11,7 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 | 0단계: 환경 구성 | 완료 | `64b2020` |
 | 1단계: 루틴 감지 검증 | 생략 (사용자 결정) | `419f101` |
 | 2단계: 암호화 모듈 | 완료 | `e76053c` |
-| 3단계: 안드로이드 수신 처리 | 진행 중 (Firebase 제외 부분 완료) | 아래 커밋 목록 참고 |
+| 3단계: 안드로이드 수신 처리 | 완료 (실제 FCM 수신은 4, 5단계에서 확인) | `656e871` 외 |
 | 4단계 이후 | 시작 전 | |
 
 ---
@@ -129,6 +129,21 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
   - ◦ 처음 만든 재전송 버튼은 직전 메시지(오래된 메시지)를 다시 보내 STALE로 걸렸음. 마지막 정상 메시지를 다시 보내도록 수정 후 SEQ 확인
 - 남은 일: Firebase 연결, 토픽 구독, `GameModeMessagingService` (사용자의 `google-services.json` 필요)
 
+### □ 3단계 Firebase 연결
+- 사용자가 Firebase 프로젝트 `gamemodebridge` 생성 및 안드로이드 앱 `com.gamemodebridge` 등록
+  - ◦ 콘솔 화면이 안내와 달라 캡처를 보고 진행함. 프로젝트 이름 아래 **+ 앱 추가** 버튼에서 등록함
+- `google-services.json`을 `android/app/`에 둠 (.gitignore로 커밋 제외 확인, 파일 내용은 패키지 이름만 확인)
+- Firebase BoM 35.0.2, firebase-messaging, google-services 플러그인 4.5.0 추가
+- `GameModeMessagingService.kt`: 데이터 메시지를 `MessageProcessor`로 처리하고 결과를 `StatusStore`에 기록. 폐기 시 사유 코드만 로그에 남김
+  - ◦ 서비스는 `exported=false`
+  - ◦ 등록 토큰은 다루지 않음 (토픽 방식)
+- `KeyStoreManager.kt`: Keystore의 공유 키 조회만 구현. 키가 없으면 `NOT_REGISTERED`로 폐기 (키 가져오기는 4단계)
+- 권한: FCM 라이브러리가 자동 추가하는 일반 권한을 CLAUDE.md 11장에 예외로 기록함
+- 확인 결과
+  - ◦ JVM 테스트 28개 통과, 릴리스 빌드 성공
+  - ◦ 태블릿 logcat에서 `FirebaseApp initialization successful` 확인
+  - ◦ 실제 FCM 메시지 수신은 키와 토픽이 생기는 4단계, PC 발송이 생기는 5단계에서 확인함
+
 ---
 
 ## 주요 결정 사항
@@ -150,13 +165,11 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 
 ## 다음 작업
 
-### □ 3단계: 안드로이드 수신 처리 (남은 부분)
-- Firebase 연결, 토픽 구독, `GameModeMessagingService`가 `MessageProcessor`와 `StatusStore`를 사용하도록 연결
+### □ 4단계: 기기 등록
+- PC `register` 명령 (키와 토픽 생성, QR 표시, 완료 확인 후 keyring 저장), `register --revoke`
+- 안드로이드 `RegistrationActivity` (QR 스캔과 형식 검증, Keystore 가져오기, 토픽 구독, 첫 정상 메시지 수신 시 확정)
+- Google 코드 스캐너(ML Kit) 의존성 추가 필요 (3장에 정한 의존성)
 - 태블릿은 중국 내수용 ROM이므로 백그라운드 수신 시 배터리 최적화 예외, 자동 실행 허용 확인
-- 사용자가 해야 할 일 (Firebase 연결 전 필요)
-  - ◦ Firebase 콘솔에서 프로젝트 생성
-  - ◦ 안드로이드 앱 등록 (패키지 이름 `com.gamemodebridge`)
-  - ◦ `google-services.json`을 `android/app/`에 넣기 (커밋되지 않음)
 
 ### □ 참고
 - 새 터미널에서 `gradlew.bat`가 JDK를 못 찾으면 `JAVA_HOME` 설정 전에 열린 창이므로 새로 열면 됨

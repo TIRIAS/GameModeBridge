@@ -677,6 +677,8 @@ GameModeBridge/
 
 ### □ 안드로이드 앱 보안
 - 권한은 인터넷, 알림 권한만 사용하고 불필요한 권한을 요청하지 않음 (QR 스캔은 카메라 권한 불필요)
+  - ◦ 예외: FCM 라이브러리가 자동으로 추가하는 권한(ACCESS_NETWORK_STATE, WAKE_LOCK, c2dm RECEIVE, 앱 내부용 DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION)은 FCM 동작에 필요하므로 허용함. 모두 사용자 확인이 필요 없는 일반 권한임
+  - ◦ 릴리스 빌드 후 `apkanalyzer manifest permissions`로 위 목록 외 권한이 없는지 확인함
 - 컴포넌트 외부 공개 최소화
   - ◦ 메시지 수신 서비스는 `android:exported="false"`로 설정함
   - ◦ 외부에 공개하는 것은 실행용 메인 액티비티 하나뿐임

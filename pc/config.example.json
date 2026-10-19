@@ -1,0 +1,7 @@
+{
+  "games": ["VALORANT-Win64-Shipping.exe", "eldenring.exe"],
+  "poll_interval_sec": 2,
+  "mode": "dry-run",
+  "sa_store_path": "%APPDATA%/GameModeBridge/sa.bin",
+  "log_path": "%APPDATA%/GameModeBridge/logs/gamemode.log"
+}

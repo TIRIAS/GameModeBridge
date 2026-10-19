@@ -8,6 +8,8 @@ import logging
 import time
 from pathlib import Path
 
+from gmb import crypto
+
 log = logging.getLogger(__name__)
 
 FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
@@ -69,6 +71,20 @@ class FcmSender:
             if attempt < MAX_RETRIES:
                 self.sleep(RETRY_DELAYS_SEC[attempt])
         raise SendError(reason)
+
+
+class StateMessenger:
+    """현재 상태를 새 순번의 암호화 메시지로 만들어 발송함. Bridge의 send_state로 사용함."""
+
+    def __init__(self, creds, state_store, sender, clock=time.time):
+        self.creds = creds
+        self.state_store = state_store
+        self.sender = sender
+        self.clock = clock
+
+    def __call__(self, state: str, game: str) -> None:
+        payload = crypto.make_payload(state, game, self.state_store.next_seq(), int(self.clock()))
+        self.sender.send(self.creds.topic, crypto.seal(self.creds.key, payload))
 
 
 class DryRunSender:

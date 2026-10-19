@@ -2,7 +2,7 @@
 
 실행: pc 폴더에서 .venv\\Scripts\\python.exe -m tools.simulate <시나리오> [--live] [--gap 초]
 기본은 드라이런이며 --live 사용 시 등록된 휴대폰으로 실제 발송함.
-multi, flapping 시나리오는 게임 감지(6단계)와 함께 추가함.
+multi, flapping은 가짜 프로세스 목록으로 실제 감지 로직(Detector, Bridge)을 거쳐 발송함.
 """
 
 import argparse
@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Callable
 
 from gmb import crypto, state_store
+from gmb.detector import Bridge, Detector
+from gmb.providers import FakeProvider
 from gmb.secret_store import DpapiServiceAccountStore, KeyringSecretStore, default_sa_path
 from gmb.sender import DryRunSender, FcmSender
 
@@ -76,7 +78,42 @@ def tamper(ctx: Context) -> None:
     ctx.send("암호문 1바이트 변조한 켜기", _tamper(ctx.envelope("on")), "폐기: AUTH")
 
 
-SCENARIOS = {"basic": basic, "stale": stale, "replay": replay, "reorder": reorder, "tamper": tamper}
+POLL_SEC = 2
+
+
+def _run_detection(ctx: Context, steps: list[set[str]], expected: dict[int, str]) -> None:
+    """steps를 감지 주기(2초)마다 재생함. expected는 해당 순서의 발송에 대한 휴대폰 기대 결과."""
+    count = {"n": 0}
+
+    def send_state(state: str, game: str) -> None:
+        count["n"] += 1
+        payload = crypto.make_payload(state, game, ctx.state.next_seq(), ctx.now())
+        ctx.send(f"감지 결과 {state} ({game})", crypto.seal(ctx.key, payload), expected.get(count["n"], "예상하지 않은 발송"))
+
+    bridge = Bridge(FakeProvider(steps), Detector(("game_a.exe", "game_b.exe")), send_state)
+    start = ctx.now()
+    for i in range(len(steps)):
+        bridge.tick(start + i * POLL_SEC)
+        ctx.sleep(POLL_SEC)
+    bridge.shutdown(start + len(steps) * POLL_SEC)
+
+
+def multi(ctx: Context) -> None:
+    # 게임 A 실행, B 추가 실행, A 종료, B 종료. 마지막 게임 종료 후 유예 4초가 지나야 off 1회
+    a, b = "game_a.exe", "game_b.exe"
+    _run_detection(ctx, [set(), {a}, {a, b}, {a, b}, {b}, {b}, set(), set(), set(), set()],
+                   {1: "GAMEMODE_OFF 알림 (시작 시 현재 상태)", 2: "GAMEMODE_ON 알림", 3: "GAMEMODE_OFF 알림"})
+
+
+def flapping(ctx: Context) -> None:
+    # 2초 간격으로 꺼졌다 켜짐을 반복. 유예 4초보다 짧으므로 on 1회 후 마지막에만 off
+    a = "game_a.exe"
+    _run_detection(ctx, [set(), {a}, set(), {a}, set(), {a}, set(), set(), set(), set()],
+                   {1: "GAMEMODE_OFF 알림 (시작 시 현재 상태)", 2: "GAMEMODE_ON 알림", 3: "GAMEMODE_OFF 알림"})
+
+
+SCENARIOS = {"basic": basic, "stale": stale, "replay": replay, "reorder": reorder, "tamper": tamper,
+             "multi": multi, "flapping": flapping}
 
 
 def main() -> None:

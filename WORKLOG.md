@@ -13,8 +13,9 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 | 2단계: 암호화 모듈 | 완료 | `e76053c` |
 | 3단계: 안드로이드 수신 처리 | 완료 (실제 FCM 수신은 4, 5단계에서 확인) | `656e871` 외 |
 | 4단계: 기기 등록 | 완료 (새 키 확정도 5단계에서 확인됨) | `2011cf4` |
-| 5단계: PC 발송 모듈 | 완료 | 아래 기록 참고 |
-| 6단계 이후 | 시작 전 | |
+| 5단계: PC 발송 모듈 | 완료 | `8de2351` |
+| 6단계: PC 게임 감지 | 완료 (드라이런 기준) | 아래 기록 참고 |
+| 7단계 이후 | 시작 전 | |
 
 ---
 
@@ -197,6 +198,26 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
   - ◦ 발송 시작부터는 중앙값 약 1.1~1.2초 (토큰 재사용 상태)
   - ◦ 측정 스크립트는 일회성이라 저장소에 넣지 않음
 
+### □ 6단계: PC 게임 감지
+- `config.py`: games는 exe 파일 이름 형식만 허용 (경로, 셸 특수 문자 거부), poll_interval 1~60초, mode 검증, %APPDATA% 확장. 비교는 소문자, 표시는 설정에 적은 표기. `config.example.json` 추가
+- `providers.py`: `psutil.process_iter(["name"])`로 이름만 조회, 조회 실패는 `ProcessQueryError`로 빈 목록과 구분. 시나리오 재생용 `FakeProvider`
+- `detector.py`
+  - ◦ `Detector`: 게임 감지 즉시 on, 마지막 게임 종료 후 유예 4초 뒤 off, 조회 실패 시 상태 유지
+  - ◦ `Bridge`: 앱 시작 시 현재 상태 발송, 상태 변경 시에만 발송, 실패 시 30초마다 현재 상태로 재발송, 감지 주기 사이 30초 이상이면 절전 해제로 보고 재발송, 다시 보내기, 일시정지(게임 중이면 off), 종료 시 off
+  - ◦ 상태 표시는 FCM 접수까지만 (모드 전환 완료로 표시하지 않음)
+- `sender.StateMessenger`: 상태를 새 순번의 암호화 메시지로 만들어 발송
+- `__main__.py`: `run` (Windows 이름 있는 뮤텍스로 중복 실행 방지, 로그 1MB 3개 순환, Ctrl+C 시 off 발송), `list-proc [검색어]`
+  - ◦ 감지 시각은 벽시계 사용. Windows의 time.monotonic은 절전 시간을 빼고 셀 수 있어 절전 해제 판단에 부적합함
+- `tools/simulate.py`: multi, flapping 시나리오 추가 (가짜 프로세스 목록으로 실제 Detector와 Bridge를 거침)
+- `tools/fake_game.py`: PyInstaller로 `pc/build/fake/fake_game.exe` 빌드 (build 폴더는 커밋 제외)
+- 테스트: PC `pytest` 111 passed (config, providers, detector와 Bridge 규칙, simulate multi와 flapping 추가)
+- 실제 프로세스 확인 (드라이런, 실제 발송 없음)
+  - ◦ fake_game.exe 실행 후 약 2초 안에 on, 종료 후 유예 4초 지나 off
+  - ◦ 두 번째 `run` 실행은 "이미 실행 중" 안내 후 종료
+  - ◦ CPU 사용률: 60초 동안 31ms, 코어 1개 기준 약 0.05% (목표 1% 미만). 메모리 약 42MB
+  - ◦ 처음 시험에서 off가 안 나온 원인: PyInstaller 단일 파일 exe가 같은 이름의 자식 프로세스를 띄우는데 부모만 종료했음 (감지기는 올바르게 on 유지). CLAUDE.md 7장에 기록
+  - ◦ CPU를 처음에 0으로 잰 원인: 가상환경 python.exe는 실제 파이썬을 자식으로 띄우는 실행기임
+
 ---
 
 ## 주요 결정 사항
@@ -218,11 +239,10 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 
 ## 다음 작업
 
-### □ 6단계: PC 게임 감지
-- `config.py`, `detector.py`, `providers.py`, `list-proc` 명령, 중복 실행 방지
-- 5장 상태 동기화 규칙 (앱 시작, 실패 후 30초마다 현재 상태, 절전 해제, 재시도 중 상태 변경)
-- 시뮬레이터 multi, flapping 시나리오와 fake_game.exe
-- 사용자 할 일: PC 시간 동기화 (선택)
+### □ 7단계: 트레이 앱 통합
+- 트레이 메뉴 (현재 상태, 다시 보내기, 감지 일시정지, 기기 등록, 설정 파일 열기, 종료), PyInstaller exe, 시작 프로그램 등록 안내 README
+- 11장 보안 점검 체크리스트 전 항목 확인
+- 사용자 할 일: `pc/config.json` 작성 (실제 게임 exe 이름은 `list-proc`로 확인), PC 시간 동기화 (선택)
 - 서비스 계정 원본 JSON은 사용자가 삭제함 (2026-10-19 확인)
 
 ### □ 참고

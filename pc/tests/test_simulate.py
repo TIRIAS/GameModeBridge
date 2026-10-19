@@ -60,6 +60,16 @@ def test_tamper_cannot_be_opened(ctx):
         crypto.open_envelope(ctx.key, ctx.sender.sent[0][1])
 
 
+def test_multi_sends_start_on_and_single_final_off(ctx):
+    simulate.multi(ctx)
+    assert [m["state"] for m in opened(ctx)] == ["off", "on", "off"]
+
+
+def test_flapping_sends_single_on_and_final_off(ctx):
+    simulate.flapping(ctx)
+    assert [m["state"] for m in opened(ctx)] == ["off", "on", "off"]
+
+
 def test_seq_continues_across_scenarios(ctx):
     simulate.basic(ctx)
     simulate.basic(ctx)

@@ -38,9 +38,11 @@ class AndroidNotificationHelper(private val context: Context) : NotificationHelp
             .setContentTitle(title)
             .setContentText(text)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
-            // 루틴이 인식할 시간을 두고 자동 삭제함 (CLAUDE.md 5장)
-            .setTimeoutAfter(AUTO_CANCEL_MS)
             .build()
+        // 자동 삭제하지 않음. 이전 알림을 지우고 새로 게시하여 마지막 상태 하나만 남김.
+        // 같은 알림을 덮어쓰면(업데이트) 루틴이 새 알림으로 감지하지 않을 수 있으므로 지운 뒤 게시함
+        manager.cancel(ID_ON)
+        manager.cancel(ID_OFF)
         manager.notify(if (state == GameState.ON) ID_ON else ID_OFF, notification)
         return NotifyResult.POSTED
     }
@@ -51,6 +53,5 @@ class AndroidNotificationHelper(private val context: Context) : NotificationHelp
         const val CHANNEL_ID = "gmb_state"
         const val ID_ON = 1
         const val ID_OFF = 2
-        const val AUTO_CANCEL_MS = 5_000L
     }
 }

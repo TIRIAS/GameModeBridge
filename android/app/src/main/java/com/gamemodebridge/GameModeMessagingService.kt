@@ -12,8 +12,8 @@ class GameModeMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val result = DeviceRegistration.create(this).handleMessage(message.from, message.data)
-        // 폐기 시 사유 코드만 남기고 메시지 내용은 남기지 않음
-        if (result is ProcessResult.Discarded) Log.i(TAG, "폐기: ${result.reason}")
+        // 처리 결과(사유 코드)만 남기고 메시지 내용은 남기지 않음. 로그 시각은 전달 지연 측정에 사용함
+        Log.i(TAG, "수신 처리: ${result.describe()}")
         StatusStore(this).record(result.describe())
     }
 

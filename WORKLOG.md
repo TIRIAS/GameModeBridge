@@ -12,8 +12,9 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 | 1단계: 루틴 감지 검증 | 생략 (사용자 결정) | `419f101` |
 | 2단계: 암호화 모듈 | 완료 | `e76053c` |
 | 3단계: 안드로이드 수신 처리 | 완료 (실제 FCM 수신은 4, 5단계에서 확인) | `656e871` 외 |
-| 4단계: 기기 등록 | 완료 (새 키 확정은 5단계 첫 발송에서 확인) | 아래 기록 참고 |
-| 5단계 이후 | 시작 전 | |
+| 4단계: 기기 등록 | 완료 (새 키 확정도 5단계에서 확인됨) | `2011cf4` |
+| 5단계: PC 발송 모듈 | 완료 | 아래 기록 참고 |
+| 6단계 이후 | 시작 전 | |
 
 ---
 
@@ -173,6 +174,29 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
   - ◦ PC와 태블릿 토픽 일치 확인 (값을 출력하지 않고 비교)
   - ◦ 키 일치와 확정은 5단계에서 PC가 새 키로 첫 메시지를 보낼 때 확인함
 
+### □ 5단계: PC 발송 모듈
+- 사용자가 Google Cloud 콘솔에서 전용 서비스 계정 `gmb-sender` 생성 (역할: Firebase Cloud Messaging API 관리자), JSON 키 발급
+  - ◦ 키 파일은 `client_email`, `type`, `project_id`만 읽어 확인하고 비밀 키는 열람하지 않음
+  - ◦ 기존 `firebase-adminsdk` 계정은 권한이 넓어 사용하지 않음
+- `import-sa` 명령: 서비스 계정 JSON 형식 검증 후 DPAPI로 암호화하여 `%APPDATA%/GameModeBridge/sa.bin` 저장. 원본 삭제는 사용자에게 안내 (자동 삭제 안 함)
+- `sender.py`: FCM HTTP v1, priority HIGH, ttl 60s, AuthorizedSession으로 접근 토큰 재사용, 같은 봉투로 최대 3회 재시도(1, 2, 2초 간격), 400/401/403/404는 재시도 안 함, 드라이런과 메모리 발송자
+- `crypto.make_payload`: 평문 생성 (msg_id 매번 새로 생성)
+- `tools/simulate.py`: basic, stale, replay, reorder, tamper (multi, flapping은 6단계)
+- 안드로이드: 처리 결과(사유 코드만)를 모두 로그에 남기도록 변경 (지연 측정용)
+- 테스트: PC `pytest` 60 passed (sender, simulate, secret_store 추가)
+- 실기기 확인 (사용자 승인 후 실제 발송)
+  - ◦ `simulate basic --live`: 켜기와 끄기 모두 수신. 태블릿 pending 등록이 active로 확정되어 키 일치 확인. 순번 PC 4, 태블릿 4 일치
+  - ◦ stale STALE, replay SEQ, reorder SEQ, tamper AUTH로 모두 폐기됨
+- 발견한 문제와 조치
+  - ◦ PC 시계가 실제 시각보다 약 22초 느림 (태블릿은 자동 시간으로 정확). 허용 범위 안이라 동작에는 문제없음. 사용자는 보정 기능을 제안했으나 보정값이 틀어질 위험 때문에 넣지 않고 PC 시간 동기화를 권장함 (사용자는 일단 진행 결정)
+  - ◦ collapse_key 사용 시 측정 중 메시지 13번째 이후부터 버려짐. FCM collapsible 메시지 한도(기기당 연속 20개)에 걸린 것으로 추정. 사용자 승인 후 collapse_key 제거, CLAUDE.md 3장 반영
+  - ◦ ZUI가 최근 앱 정리 시 앱을 강제 중지(`ZuiMemoryCleaner_Recents`)하여 메시지 18개 유실. 사용자가 최근 앱 잠금, 자동 시작 허용, 배터리 최적화 해제를 설정한 뒤 해결. CLAUDE.md 13장 반영
+- 지연 측정 (켜기와 끄기 10회씩 20개, FCM 접수 시각 기준, 시계 차이 보정)
+  - ◦ 화면 켜짐: 20개 모두 도착, 1개는 FCM 순서 역전으로 늦게 와서 SEQ 폐기. 중앙값 0.71초, 최대 1.22초
+  - ◦ 강제 깊은 절전(deviceidle force-idle): 20개 모두 수신. 중앙값 0.81초, 최대 1.06초
+  - ◦ 발송 시작부터는 중앙값 약 1.1~1.2초 (토큰 재사용 상태)
+  - ◦ 측정 스크립트는 일회성이라 저장소에 넣지 않음
+
 ---
 
 ## 주요 결정 사항
@@ -194,12 +218,11 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 
 ## 다음 작업
 
-### □ 5단계: PC 발송 모듈
-- `import-sa` 명령 (서비스 계정 JSON을 DPAPI로 암호화 저장)
-- `sender.py` FCM 발송 (priority HIGH, ttl 60s, collapse_key, 토큰 재사용, 재시도)
-- 첫 발송으로 태블릿의 새 키 확정과 키 일치 확인, 토픽 발송 지연 측정
-- 사용자가 해야 할 일: Firebase 콘솔에서 FCM 발송 역할만 가진 전용 서비스 계정 생성 및 키 JSON 발급
-- 태블릿은 중국 내수용 ROM이므로 백그라운드 수신 시 배터리 최적화 예외, 자동 실행 허용 확인
+### □ 6단계: PC 게임 감지
+- `config.py`, `detector.py`, `providers.py`, `list-proc` 명령, 중복 실행 방지
+- 5장 상태 동기화 규칙 (앱 시작, 실패 후 30초마다 현재 상태, 절전 해제, 재시도 중 상태 변경)
+- 시뮬레이터 multi, flapping 시나리오와 fake_game.exe
+- 사용자 할 일: 서비스 계정 원본 JSON(`E:\개인앱개발\gamemodebridge-f6d7f55b67eb.json`) 삭제 확인, PC 시간 동기화 (선택)
 
 ### □ 참고
 - 새 터미널에서 `gradlew.bat`가 JDK를 못 찾으면 `JAVA_HOME` 설정 전에 열린 창이므로 새로 열면 됨

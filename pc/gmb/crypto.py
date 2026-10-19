@@ -25,6 +25,13 @@ def _check_key(key: bytes) -> None:
         raise ValueError("공유 키는 32바이트여야 함")
 
 
+def make_payload(state: str, game: str, seq: int, ts: int) -> dict:
+    """암호화 전 평문 (CLAUDE.md 5장). msg_id는 메시지마다 새로 생성함."""
+    if state not in ("on", "off"):
+        raise ValueError("state는 on 또는 off")
+    return {"state": state, "game": game, "ts": ts, "seq": seq, "msg_id": secrets.token_hex(16)}
+
+
 def encode_plaintext(payload: dict) -> bytes:
     return json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 

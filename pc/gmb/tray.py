@@ -288,7 +288,7 @@ def show_import_sa_window(app: App) -> None:
         messagebox.showinfo(
             "가져오기 완료",
             f"{info['client_email']}\n암호화하여 저장했습니다.\n\n"
-            f"원본 파일은 더 이상 필요 없으므로 직접 삭제하고 휴지통도 비워 주세요:\n{path}{warning}",
+            f"보관용 원본(USB 등)은 그대로 두고, 이 PC에 복사해 온 파일이라면 삭제하고 휴지통도 비워 주세요:\n{path}{warning}",
             parent=root,
         )
     finally:

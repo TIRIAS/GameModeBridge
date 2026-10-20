@@ -388,7 +388,7 @@ GameModeBridge/
 - PC
   - ◦ 공유 키: keyring으로 Windows 자격 증명 관리자에 저장함 (내부적으로 DPAPI로 보호됨)
   - ◦ 서비스 계정 JSON: `import-sa` 명령으로 1회 가져올 때 DPAPI로 암호화한 파일(`sa.bin`)로 저장함
-  - ◦ 가져오기 후 원본 JSON 파일 삭제를 사용자에게 안내함 (자동 삭제는 하지 않음)
+  - ◦ 원본 JSON 1개를 사용자가 exe와 함께 안전한 곳에 보관하고 모든 PC에서 재사용함 (사용자 결정, 2026-10-20). PC에 복사해 온 사본만 삭제를 안내함 (자동 삭제는 하지 않음)
   - ◦ 실행 중에는 메모리에서만 복호화하고 디스크에 평문을 쓰지 않음
 - 안드로이드
   - ◦ 공유 키는 Android Keystore에 가져와 저장함 (복호화 용도로만 제한)
@@ -655,7 +655,7 @@ GameModeBridge/
   - ◦ `google-services.json`: 비밀 키는 아니지만 공개 저장소에 올리지 않음
   - ◦ 설정 파일(`%APPDATA%/GameModeBridge/config.json`, 예전 위치 `pc/config.json`): 개인 환경 정보 포함
   - ◦ 릴리스 서명 키 `%USERPROFILE%/.gamemodebridge/release.jks`와 비밀번호 파일 `android/keystore.properties`: 저장소 밖 또는 커밋 제외. 잃어버리면 앱 업데이트가 불가하므로 사용자가 별도 백업함. 비밀번호를 출력하지 않음
-  - ◦ 서비스 계정 키는 PC마다 따로 발급하고, PC를 정리할 때 그 PC의 키를 콘솔에서 삭제함
+  - ◦ 서비스 계정 키는 1개를 모든 PC가 함께 쓰고 사용자가 원본을 보관함 (사용자 결정, 2026-10-20). 유출이 의심되면 콘솔에서 그 키를 삭제하고 새로 받아 모든 PC에서 다시 가져옴
 - 위 파일은 모두 .gitignore에 포함함
 - 코드, 로그, 오류 메시지, 커밋 메시지에 키나 토큰 내용을 출력하지 않음
 - 선택 사항: gitleaks 같은 비밀 정보 검사 도구를 pre-commit 훅으로 등록함

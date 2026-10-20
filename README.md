@@ -98,7 +98,9 @@ APK 서명에는 아래 "릴리스 서명 키"가 필요합니다. 없으면 서
 | 설정 파일 열기 | `%APPDATA%\GameModeBridge\config.json` |
 | 종료 | 게임 중이었다면 off를 보낸 뒤 종료 |
 
-아이콘 색: 초록 게임 중, 회색 대기, 빨강 발송 실패(30초마다 재시도), 노랑 일시정지
+아이콘 배경색: 초록 게임 중, 회색 대기, 빨강 발송 실패(30초마다 재시도), 노랑 일시정지
+
+아이콘 모양을 바꾸려면 `pc/gmb/icon.py`를 고친 뒤 `pc` 폴더에서 `.venv\Scripts\python.exe tools\make_icons.py`를 실행하고 exe와 APK를 다시 빌드합니다.
 
 ### Windows 시작 시 자동 실행
 

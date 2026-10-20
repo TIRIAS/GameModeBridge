@@ -294,6 +294,17 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
 - 테스트: `pytest` 124 passed, 창 버튼 자동 클릭 시험 통과, exe 재빌드 후 `E:\개인앱개발\`에 교체
 - 개발 PC 설정에도 기본 게임 목록을 합침 (기존 EXCEL.EXE, notepad.exe 유지)
 
+### □ 아이콘 변경 (2026-10-20)
+- 사용자 선택: 직접 디자인 시안 승인, 트레이도 같은 모양에 상태 색 유지
+- 디자인: 남색(#263859) 둥근 사각형 위 흰색 게임 패드와 신호 호 2개
+- `pc/gmb/icon.py`: Pillow로 4배 크기에 그린 뒤 축소 (`app_icon`, `glyph`). 새 라이브러리 없음
+  - ◦ 트레이 아이콘: 같은 모양, 배경색으로 상태 표시 (초록, 회색, 빨강, 노랑)
+- `pc/tools/make_icons.py`: `pc/assets/GameModeBridge.ico`(16~256px)와 안드로이드 `mipmap-*/ic_launcher_foreground.png` 생성 (커밋함)
+- 안드로이드: 적응형 아이콘 (`mipmap-anydpi-v26/ic_launcher.xml`, 배경 색 리소스, 테마 아이콘용 monochrome), 매니페스트 `icon`, `roundIcon` 지정
+- `build.ps1`: PyInstaller `--icon` 추가
+- 테스트: `pytest` 127 passed, 안드로이드 `testDebugUnitTest` 통과, 릴리스 APK 서명 SHA-1 기존과 같음 (업데이트 설치 가능, 재등록 불필요)
+- exe와 apk를 `dist\`와 `E:\개인앱개발\`에 교체
+
 ---
 
 ## 주요 결정 사항

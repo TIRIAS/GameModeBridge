@@ -8,6 +8,7 @@ if ($LASTEXITCODE -ne 0) { throw '테스트 실패로 빌드를 중단함' }
 
 .venv\Scripts\python.exe -m PyInstaller --noconfirm --onefile --noconsole --name GameModeBridge --paths . `
     --hidden-import pystray._win32 --hidden-import keyring.backends.Windows `
+    --icon (Join-Path $PSScriptRoot 'assets\GameModeBridge.ico') `
     --distpath dist --workpath build\pyi --specpath build --log-level WARN gmb\__main__.py
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller 빌드 실패' }
 

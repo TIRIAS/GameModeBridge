@@ -11,11 +11,12 @@ import time
 from pathlib import Path
 
 import pystray
-from PIL import Image, ImageDraw
+from PIL import Image
 
 from gmb import config as config_mod
 from gmb import registration, state_store
 from gmb.detector import Bridge, Detector
+from gmb.icon import app_icon
 from gmb.providers import PsutilProvider, running_exe_names
 from gmb.secret_store import DpapiServiceAccountStore, KeyringSecretStore, default_sa_path
 from gmb.sender import DryRunSender, FcmSender, SendError, StateMessenger
@@ -26,14 +27,8 @@ _COLORS = {"on": (46, 160, 67), "off": (128, 128, 128), "error": (218, 54, 51), 
 
 
 def _icon_image(kind: str) -> Image.Image:
-    img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.rounded_rectangle((4, 16, 60, 48), radius=14, fill=_COLORS[kind])
-    d.rectangle((14, 29, 26, 35), fill="white")
-    d.rectangle((17, 26, 23, 38), fill="white")
-    d.ellipse((40, 24, 46, 30), fill="white")
-    d.ellipse((46, 32, 52, 38), fill="white")
-    return img
+    # 앱 아이콘과 같은 모양, 배경색으로 상태 표시
+    return app_icon(64, _COLORS[kind])
 
 
 class _Unavailable:

@@ -282,6 +282,17 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
   - ◦ 트레이 가져오기 완료 안내문 수정: 보관용 원본은 두고 PC에 복사한 사본만 삭제 안내
   - ◦ README 다른 PC 설치 절차, CLAUDE.md 저장 암호화와 11장 키 관리 문구 수정
   - ◦ exe 재빌드 (테스트 통과), `dist\`와 `E:\개인앱개발\`에 교체
+- 다른 PC 설치 시험: 사용자 확인 결과 정상 동작
+
+### □ 게임 목록 추가 기능 (2026-10-20)
+- 사용자 선택: 기본 게임 목록 내장과 실행 중 프로그램에서 고르기 둘 다
+- 기본 게임 목록 `config.PRESET_GAMES` (exe 이름은 커뮤니티 자료 기준, 공식 확인 아님)
+  - ◦ 명조 `Client-Win64-Shipping.exe`, 오버워치 2 `Overwatch.exe`, 레식 `RainbowSix.exe` `RainbowSix_Vulkan.exe`, 배그 `TslGame.exe`, 이환 `HTGame.exe`, GTA 5 `GTA5.exe` `GTA5_Enhanced.exe`, 에이펙스 `r5apex.exe` `r5apex_dx12.exe`
+  - ◦ 새 설정 파일의 기본 games로 들어감. 기존 PC는 관리 창의 **기본 게임 목록 추가** 버튼으로 합침 (중복 건너뜀)
+- 관리 창에 **실행 중인 프로그램에서...** 추가: 검색, 새로고침, 여러 개 선택. 이미 목록에 있는 이름은 숨김 (`providers.running_exe_names`)
+- `config.add_names` 추가, `add_games`는 이를 사용하도록 정리
+- 테스트: `pytest` 124 passed, 창 버튼 자동 클릭 시험 통과, exe 재빌드 후 `E:\개인앱개발\`에 교체
+- 개발 PC 설정에도 기본 게임 목록을 합침 (기존 EXCEL.EXE, notepad.exe 유지)
 
 ---
 

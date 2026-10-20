@@ -34,3 +34,18 @@ def test_fake_provider_replays_and_repeats_last():
         p.running_names()
     assert p.running_names() == set()
     assert p.running_names() == set()
+
+
+def test_running_exe_names_keeps_case_and_dedupes(mocker):
+    from gmb.providers import running_exe_names
+
+    procs = [mocker.Mock(info={"name": n}) for n in ["Game.exe", "game.EXE", "explorer.exe", "System", None]]
+    mocker.patch("gmb.providers.psutil.process_iter", return_value=procs)
+    assert running_exe_names() == ["explorer.exe", "Game.exe"]
+
+
+def test_running_exe_names_returns_empty_on_failure(mocker):
+    from gmb.providers import running_exe_names
+
+    mocker.patch("gmb.providers.psutil.process_iter", side_effect=psutil.Error())
+    assert running_exe_names() == []

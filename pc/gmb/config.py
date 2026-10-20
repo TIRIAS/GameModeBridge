@@ -12,8 +12,21 @@ from pathlib import Path
 # 파일 이름만 허용함 (한글 등 유니코드 글자 포함). 경로 구분자, 따옴표, 셸 특수 문자는 거부함
 _EXE_NAME = re.compile(r"^\w[\w .\-()\[\]]{0,99}\.exe$", re.IGNORECASE)
 MODES = ("dry-run", "live")
+# 기본 게임 목록 (사용자 지정, 2026-10-20). 실제 게임 본체 exe 이름이며 런처는 넣지 않음
+PRESET_GAMES = (
+    ("명조", "Client-Win64-Shipping.exe"),
+    ("오버워치 2", "Overwatch.exe"),
+    ("레인보우 식스 시즈", "RainbowSix.exe"),
+    ("레인보우 식스 시즈 (Vulkan)", "RainbowSix_Vulkan.exe"),
+    ("배틀그라운드", "TslGame.exe"),
+    ("이환", "HTGame.exe"),
+    ("GTA 5 레거시", "GTA5.exe"),
+    ("GTA 5 인핸스드", "GTA5_Enhanced.exe"),
+    ("에이펙스 레전드", "r5apex.exe"),
+    ("에이펙스 레전드 (DX12)", "r5apex_dx12.exe"),
+)
 DEFAULT_DATA = {
-    "games": [],
+    "games": [exe for _, exe in PRESET_GAMES],
     "poll_interval_sec": 2,
     "mode": "dry-run",
     "sa_store_path": "%APPDATA%/GameModeBridge/sa.bin",
@@ -99,7 +112,7 @@ def load(path: Path) -> Config:
 
 
 def load_or_create(path: Path) -> Config:
-    """설정 파일이 없으면 기본값(감지 목록 비어 있음, 드라이런)으로 만듦."""
+    """설정 파일이 없으면 기본값(기본 게임 목록, 드라이런)으로 만듦."""
     if not path.exists():
         _write(path, DEFAULT_DATA)
     return load(path)
@@ -124,11 +137,15 @@ def save_mode(path: Path, mode: str) -> Config:
 
 def add_games(current: list[str], picked_paths: list[str]) -> tuple[list[str], list[str]]:
     """파일 탐색기에서 고른 exe 경로들의 파일 이름을 목록에 추가함. (새 목록, 거부된 이름)을 돌려줌."""
+    return add_names(current, [Path(p).name for p in picked_paths])
+
+
+def add_names(current: list[str], names: list[str]) -> tuple[list[str], list[str]]:
+    """exe 이름들을 목록 끝에 추가함. 대소문자만 다른 중복은 건너뜀. (새 목록, 거부된 이름)을 돌려줌."""
     games = list(current)
     known = {g.lower() for g in games}
     rejected = []
-    for p in picked_paths:
-        name = Path(p).name
+    for name in names:
         if not is_valid_exe_name(name):
             rejected.append(name)
         elif name.lower() not in known:

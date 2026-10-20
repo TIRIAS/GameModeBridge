@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw
 from gmb import config as config_mod
 from gmb import registration, state_store
 from gmb.detector import Bridge, Detector
-from gmb.providers import PsutilProvider
+from gmb.providers import PsutilProvider, running_exe_names
 from gmb.secret_store import DpapiServiceAccountStore, KeyringSecretStore, default_sa_path
 from gmb.sender import DryRunSender, FcmSender, SendError, StateMessenger
 
@@ -199,7 +199,7 @@ class App:
 
 
 def show_games_window(app: App) -> None:
-    """감지할 프로그램 관리 창. 파일 탐색기로 exe를 골라 추가함."""
+    """감지할 프로그램 관리 창. 파일 탐색기, 실행 중 프로그램, 기본 게임 목록에서 추가함."""
     import tkinter as tk
     from tkinter import filedialog, messagebox
 
@@ -211,6 +211,7 @@ def show_games_window(app: App) -> None:
     tk.Label(root, justify="left", text=(
         "실행되면 휴대폰 게임 모드를 켤 프로그램입니다.\n"
         "게임은 런처가 아닌 실제 게임 실행 파일을 고르세요 (예: 게임 폴더 안의 ...Win64-Shipping.exe).\n"
+        "exe 위치를 모르면 게임을 켠 상태에서 실행 중인 프로그램에서 고르세요.\n"
         "파일 이름으로만 비교하므로 다른 폴더의 같은 이름 프로그램도 감지됩니다."
     )).pack(padx=16, pady=(16, 8), anchor="w")
 
@@ -233,6 +234,54 @@ def show_games_window(app: App) -> None:
         if rejected:
             messagebox.showwarning("추가하지 못한 파일", "지원하지 않는 이름입니다:\n" + "\n".join(rejected), parent=root)
 
+    def add_names(names):
+        new, rejected = config_mod.add_names(games, names)
+        games[:] = new
+        refresh()
+        if rejected:
+            messagebox.showwarning("추가하지 못한 이름", "지원하지 않는 이름입니다:\n" + "\n".join(rejected), parent=root)
+
+    def add_presets():
+        add_names([exe for _, exe in config_mod.PRESET_GAMES])
+
+    def add_running():
+        win = tk.Toplevel(root)
+        win.title("실행 중인 프로그램에서 선택")
+        win.attributes("-topmost", True)
+        win.transient(root)
+        tk.Label(win, text="검색:").pack(padx=16, pady=(16, 0), anchor="w")
+        query = tk.StringVar()
+        tk.Entry(win, textvariable=query, width=50).pack(padx=16, fill="x")
+        running = tk.Listbox(win, width=50, height=15, selectmode="extended")
+        running.pack(padx=16, pady=8, fill="both", expand=True)
+        names: list[str] = []
+        shown: list[str] = []
+
+        def load_names():
+            # 이미 목록에 있는 프로그램은 빼고 보여줌
+            known = {g.lower() for g in games}
+            names[:] = [n for n in running_exe_names() if n.lower() not in known]
+            filter_list()
+
+        def filter_list(*_):
+            q = query.get().strip().lower()
+            shown[:] = [n for n in names if q in n.lower()]
+            running.delete(0, "end")
+            for n in shown:
+                running.insert("end", n)
+
+        def pick():
+            add_names([shown[i] for i in running.curselection()])
+            win.destroy()
+
+        query.trace_add("write", filter_list)
+        load_names()
+        row = tk.Frame(win)
+        row.pack(padx=16, pady=(0, 16), fill="x")
+        tk.Button(row, text="새로고침", command=load_names).pack(side="left")
+        tk.Button(row, text="취소", command=win.destroy).pack(side="right")
+        tk.Button(row, text="선택 항목 추가", command=pick).pack(side="right", padx=8)
+
     def remove():
         for i in reversed(listbox.curselection()):
             del games[i]
@@ -249,6 +298,8 @@ def show_games_window(app: App) -> None:
     buttons = tk.Frame(root)
     buttons.pack(padx=16, pady=16, fill="x")
     tk.Button(buttons, text="exe 파일 추가...", command=add).pack(side="left")
+    tk.Button(buttons, text="실행 중인 프로그램에서...", command=add_running).pack(side="left", padx=(8, 0))
+    tk.Button(buttons, text="기본 게임 목록 추가", command=add_presets).pack(side="left", padx=(8, 0))
     tk.Button(buttons, text="선택 항목 제거", command=remove).pack(side="left", padx=8)
     tk.Button(buttons, text="취소", command=root.destroy).pack(side="right")
     tk.Button(buttons, text="저장", command=save).pack(side="right", padx=8)

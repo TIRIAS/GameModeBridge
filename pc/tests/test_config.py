@@ -73,7 +73,20 @@ def test_unicode_and_spaces_allowed(name):
 def test_load_or_create_writes_default(tmp_path):
     path = tmp_path / "sub" / "config.json"
     cfg = config.load_or_create(path)
-    assert path.exists() and cfg.games == () and cfg.mode == "dry-run"
+    assert path.exists() and cfg.mode == "dry-run"
+    assert cfg.games == tuple(exe for _, exe in config.PRESET_GAMES)
+
+
+def test_preset_games_valid_and_unique():
+    names = [exe for _, exe in config.PRESET_GAMES]
+    assert all(config.is_valid_exe_name(n) for n in names)
+    assert len({n.lower() for n in names}) == len(names)
+
+
+def test_add_names_skips_duplicates_and_rejects_invalid():
+    games, rejected = config.add_names(["TslGame.exe"], ["tslgame.exe", "Overwatch.exe", "a/b.exe"])
+    assert games == ["TslGame.exe", "Overwatch.exe"]
+    assert rejected == ["a/b.exe"]
 
 
 def test_save_games_keeps_other_settings(tmp_path):

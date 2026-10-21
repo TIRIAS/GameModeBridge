@@ -314,6 +314,23 @@ CLAUDE.md는 개발 지침이고, 이 문서는 실제로 진행한 작업과 �
   - ◦ 다만 CLAUDE.md 11장의 프로세스 핸들 열기 금지 문구와 `providers.py` 설명과는 맞지 않음
 - 제안 (사용자 결정 대기): `CreateToolhelp32Snapshot`(ctypes, 새 라이브러리 없음)으로 바꿔 게임 프로세스에 핸들을 전혀 열지 않게 함
 
+### □ PC 시작 시 OFF 알림 대신 서비스 시작 알림 (2026-10-21)
+- 사용자 보고: PC를 켤 때 exe가 시작하면서 매번 GAMEMODE_OFF 알림이 뜸 (시작 동기화 발송 때문)
+- Windows 서비스로 실행하는 안은 부팅 때 똑같이 발송하고, 트레이와 사용자 계정 저장소를 쓸 수 없어 제외
+- 사용자 승인안: 자동 동기화 발송에 평문 선택 필드 `sync: true`를 붙이고, 휴대폰이 이미 off면 키워드 없는 서비스 시작 알림을 띄움
+- PC
+  - ◦ `crypto.make_payload(..., sync)`: sync일 때만 필드 추가 (테스트 벡터 변화 없음)
+  - ◦ `Bridge`: 앱 시작과 감지 재개(desired 없음), 절전 해제(`auto_sync`)는 sync. 사용자 다시 보내기(`force_sync`), 실제 상태 변화, 일시정지와 종료 off는 sync 아님. 실패 후 재시도는 상태가 같으면 sync 유지
+  - ◦ 로그에 `자동 동기화` 표시
+- 안드로이드
+  - ◦ `NotificationHelper`: `postServiceStart()` (알림 ID 3, 키워드 없음), `lastState()` (마지막 게시 키워드 상태를 `gmb_notify` 저장소에 보관, 게시 성공 때만 갱신)
+  - ◦ `MessageProcessor`: 순번 저장 후 sync off이고 lastState가 OFF면 서비스 시작 알림. lastState가 ON이거나 기록이 없으면 GAMEMODE_OFF
+  - ◦ `ProcessResult.Accepted.serviceStart`, 상태 문구 추가
+- 테스트: `pytest` 135 passed (sync 표시 8개 추가), 안드로이드 47개 통과 (자동 동기화 6개 추가)
+- exe와 APK 재빌드 (서명 SHA-1 동일, APK에 새 문구 포함 확인), `dist\`와 `E:\개인앱개발\` 교체, 갤럭시에 adb로 덮어 설치
+- 개발 PC 트레이 재시작 시 로그 `발송: off (-) 자동 동기화` 확인. 휴대폰 실수신 확인은 사용자 PC 재부팅으로 확인 예정
+- 업데이트 직후 휴대폰에 마지막 상태 기록이 없어 첫 자동 동기화는 GAMEMODE_OFF로 한 번 뜸 (안전한 쪽)
+
 ---
 
 ## 주요 결정 사항

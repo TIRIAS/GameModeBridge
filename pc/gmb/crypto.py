@@ -25,11 +25,17 @@ def _check_key(key: bytes) -> None:
         raise ValueError("공유 키는 32바이트여야 함")
 
 
-def make_payload(state: str, game: str, seq: int, ts: int) -> dict:
-    """암호화 전 평문 (CLAUDE.md 5장). msg_id는 메시지마다 새로 생성함."""
+def make_payload(state: str, game: str, seq: int, ts: int, sync: bool = False) -> dict:
+    """암호화 전 평문 (CLAUDE.md 5장). msg_id는 메시지마다 새로 생성함.
+
+    sync: 앱 시작, 감지 재개, 절전 해제 때 보내는 자동 동기화 표시. true일 때만 넣음 (선택 필드).
+    """
     if state not in ("on", "off"):
         raise ValueError("state는 on 또는 off")
-    return {"state": state, "game": game, "ts": ts, "seq": seq, "msg_id": secrets.token_hex(16)}
+    payload = {"state": state, "game": game, "ts": ts, "seq": seq, "msg_id": secrets.token_hex(16)}
+    if sync:
+        payload["sync"] = True
+    return payload
 
 
 def encode_plaintext(payload: dict) -> bytes:

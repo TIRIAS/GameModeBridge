@@ -3,6 +3,7 @@ package com.gamemodebridge
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
 
@@ -16,7 +17,13 @@ enum class DiscardReason {
 }
 
 sealed interface ProcessResult {
-    data class Accepted(val state: GameState, val seq: Long, val notify: NotifyResult) : ProcessResult
+    /** serviceStart: 자동 동기화 off를 이미 꺼진 상태에서 받아 키워드 없는 서비스 시작 알림을 띄움 */
+    data class Accepted(
+        val state: GameState,
+        val seq: Long,
+        val notify: NotifyResult,
+        val serviceStart: Boolean = false,
+    ) : ProcessResult
     data class Discarded(val reason: DiscardReason) : ProcessResult
 }
 
@@ -64,13 +71,18 @@ class MessageProcessor(
         // 6) 순번을 먼저 저장한 뒤 알림 게시
         seqStore.save(msg.seq)
 
+        // PC 시작이나 절전 해제 때의 자동 동기화 off인데 이미 꺼진 상태면 키워드 알림을 띄우지 않음
+        if (msg.sync && state == GameState.OFF && notifier.lastState() == GameState.OFF) {
+            return ProcessResult.Accepted(state, msg.seq, notifier.postServiceStart(), serviceStart = true)
+        }
+
         // 7) 게임 이름 정리 후 표시
         val game = sanitizeGame(msg.game).ifEmpty { "게임" }
         val text = if (state == GameState.ON) "$game 실행 감지" else "$game 종료 감지"
         return ProcessResult.Accepted(state, msg.seq, notifier.post(state, text))
     }
 
-    private class Plaintext(val state: String, val game: String, val ts: Long, val seq: Long)
+    private class Plaintext(val state: String, val game: String, val ts: Long, val seq: Long, val sync: Boolean)
 
     private fun parse(bytes: ByteArray): Plaintext? {
         val obj = try {
@@ -85,6 +97,8 @@ class MessageProcessor(
             game = obj.string("game") ?: return null,
             ts = obj.long("ts") ?: return null,
             seq = obj.long("seq") ?: return null,
+            // 선택 필드. 없거나 true가 아니면 일반 메시지로 처리함 (이전 PC 버전 호환)
+            sync = (obj["sync"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull == true,
         )
     }
 

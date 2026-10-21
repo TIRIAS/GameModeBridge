@@ -78,3 +78,8 @@ def test_unsupported_version_rejected(key):
 def test_wrong_key_size_rejected(size):
     with pytest.raises(ValueError):
         crypto.seal(b"\x00" * size, PAYLOAD)
+
+
+def test_sync_field_only_when_requested():
+    assert "sync" not in crypto.make_payload("off", "", 1, 100)
+    assert crypto.make_payload("off", "", 1, 100, sync=True)["sync"] is True

@@ -50,6 +50,8 @@ class DeviceRegistrationTest {
             posted += state
             return NotifyResult.POSTED
         }
+        override fun postServiceStart() = NotifyResult.POSTED
+        override fun lastState(): GameState? = null
     }
 
     private val now = 1_760_000_000L

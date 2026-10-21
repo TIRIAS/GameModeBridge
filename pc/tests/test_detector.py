@@ -76,12 +76,14 @@ def test_set_games_removing_running_game_ends_after_grace():
 class Recorder:
     def __init__(self):
         self.sent = []
+        self.syncs = []
         self.fail = False
 
-    def __call__(self, state, game):
+    def __call__(self, state, game, sync):
         if self.fail:
             raise SendError("HTTP 503")
         self.sent.append((state, game))
+        self.syncs.append(sync)
 
 
 def make(steps, **kw):
@@ -183,3 +185,58 @@ def test_shutdown_sends_off_only_if_playing(steps, expected):
     bridge.tick(0)
     bridge.shutdown(2)
     assert rec.sent == expected
+
+
+# ---------- 자동 동기화 표시 (sync) ----------
+
+def test_start_send_is_marked_sync():
+    bridge, rec = make([set()] * 3)
+    tick_all(bridge, 3)
+    assert rec.syncs == [True]
+
+
+def test_real_state_changes_are_not_sync():
+    bridge, rec = make([set(), {A}, set(), set(), set()])
+    tick_all(bridge, 5)
+    assert rec.sent == [("off", ""), ("on", "game_a"), ("off", "game_a")]
+    assert rec.syncs == [True, False, False]
+
+
+def test_resume_from_sleep_is_sync():
+    bridge, rec = make([set()] * 5)
+    bridge.tick(0)
+    bridge.tick(600)
+    assert rec.syncs == [True, True]
+
+
+def test_user_resend_is_not_sync():
+    bridge, rec = make([set()] * 5)
+    bridge.tick(0)
+    bridge.resend_current()
+    bridge.tick(2)
+    assert rec.syncs == [True, False]
+
+
+def test_detection_resume_after_pause_is_sync():
+    bridge, rec = make([set()] * 5)
+    bridge.tick(0)
+    bridge.pause(2)
+    bridge.resume()
+    bridge.tick(4)
+    assert rec.syncs == [True, True]
+
+
+def test_retry_keeps_sync_flag_of_failed_start_send():
+    bridge, rec = make([set()] * 40)
+    rec.fail = True
+    bridge.tick(0)
+    rec.fail = False
+    bridge.tick(30)
+    assert rec.sent == [("off", "")] and rec.syncs == [True]
+
+
+def test_pause_and_shutdown_off_are_not_sync():
+    bridge, rec = make([{A}] * 5)
+    bridge.tick(0)
+    bridge.pause(2)
+    assert rec.syncs == [True, False]

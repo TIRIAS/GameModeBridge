@@ -64,10 +64,10 @@ class App:
             return _Unavailable("서비스 계정 없음 (import-sa 필요)")
         return FcmSender(DpapiServiceAccountStore(sa_path).load())
 
-    def _send_state(self, state: str, game: str) -> None:
+    def _send_state(self, state: str, game: str, sync: bool = False) -> None:
         if self.messenger.creds is None:
             raise SendError("기기 미등록")
-        self.messenger(state, game)
+        self.messenger(state, game, sync)
 
     # ---------- 감지 스레드 ----------
 

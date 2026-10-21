@@ -16,11 +16,19 @@ class MessageProcessorTest {
         NotificationHelper {
         val posted = mutableListOf<Pair<GameState, String>>()
         val seqAtPost = mutableListOf<Long>()
+        var last: GameState? = null
+        var serviceStarts = 0
         override fun post(state: GameState, text: String): NotifyResult {
             posted += state to text
             seqAtPost += store.last()
+            if (result == NotifyResult.POSTED) last = state
             return result
         }
+        override fun postServiceStart(): NotifyResult {
+            serviceStarts++
+            return result
+        }
+        override fun lastState() = last
     }
 
     private val now = 1_760_000_000L
@@ -30,8 +38,9 @@ class MessageProcessorTest {
     private val notifier = FakeNotifier(seqStore)
     private val processor = MessageProcessor(AesGcmCryptoManager(key), seqStore, notifier) { now }
 
-    private fun msg(state: String = "on", game: String = "VALORANT", ts: Long = now, seq: Long = 1) =
-        factory.message(state, game, ts, seq)
+    private fun msg(
+        state: String = "on", game: String = "VALORANT", ts: Long = now, seq: Long = 1, sync: Boolean = false,
+    ) = factory.message(state, game, ts, seq, sync)
 
     private fun discarded(reason: DiscardReason) = ProcessResult.Discarded(reason)
 
@@ -193,5 +202,55 @@ class MessageProcessorTest {
     fun keywordInGameNameIsNotShownInNotification() {
         processor.process(msg(state = "off", game = "GAMEMODE_ON"))
         assertEquals("게임 종료 감지", notifier.posted.single().second)
+    }
+
+    // ---------- 자동 동기화 (PC 시작, 절전 해제) ----------
+
+    @Test
+    fun syncOffWhenAlreadyOffPostsServiceStartWithoutKeyword() {
+        notifier.last = GameState.OFF
+        val result = processor.process(msg(state = "off", game = "", sync = true))
+        assertEquals(ProcessResult.Accepted(GameState.OFF, 1, NotifyResult.POSTED, serviceStart = true), result)
+        assertEquals(1, notifier.serviceStarts)
+        assertTrue(notifier.posted.isEmpty())
+        assertEquals(1L, seqStore.last())
+    }
+
+    @Test
+    fun syncOffWhenOnPostsOffKeyword() {
+        // 게임 중 PC가 꺼졌다가 다시 켜진 경우: 게임 모드를 꺼야 함
+        notifier.last = GameState.ON
+        processor.process(msg(state = "off", game = "", sync = true))
+        assertEquals(listOf(GameState.OFF to "게임 종료 감지"), notifier.posted)
+        assertEquals(0, notifier.serviceStarts)
+    }
+
+    @Test
+    fun syncOffWithUnknownStatePostsOffKeyword() {
+        processor.process(msg(state = "off", game = "", sync = true))
+        assertEquals(GameState.OFF, notifier.posted.single().first)
+    }
+
+    @Test
+    fun nonSyncOffWhenAlreadyOffStillPostsKeyword() {
+        // 트레이의 현재 상태 다시 보내기는 항상 키워드 알림
+        notifier.last = GameState.OFF
+        processor.process(msg(state = "off", game = "", sync = false))
+        assertEquals(GameState.OFF, notifier.posted.single().first)
+    }
+
+    @Test
+    fun syncOnPostsOnKeyword() {
+        notifier.last = GameState.ON
+        processor.process(msg(state = "on", sync = true))
+        assertEquals(GameState.ON, notifier.posted.single().first)
+    }
+
+    @Test
+    fun syncFieldAsStringIsIgnored() {
+        notifier.last = GameState.OFF
+        val plain = "{\"state\":\"off\",\"game\":\"\",\"ts\":$now,\"seq\":1,\"msg_id\":\"ab\",\"sync\":\"true\"}"
+        processor.process(factory.seal(plain.toByteArray(Charsets.UTF_8)))
+        assertEquals(GameState.OFF, notifier.posted.single().first)
     }
 }

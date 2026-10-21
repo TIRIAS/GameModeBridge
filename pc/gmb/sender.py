@@ -82,8 +82,8 @@ class StateMessenger:
         self.sender = sender
         self.clock = clock
 
-    def __call__(self, state: str, game: str) -> None:
-        payload = crypto.make_payload(state, game, self.state_store.next_seq(), int(self.clock()))
+    def __call__(self, state: str, game: str, sync: bool = False) -> None:
+        payload = crypto.make_payload(state, game, self.state_store.next_seq(), int(self.clock()), sync)
         self.sender.send(self.creds.topic, crypto.seal(self.creds.key, payload))
 
 

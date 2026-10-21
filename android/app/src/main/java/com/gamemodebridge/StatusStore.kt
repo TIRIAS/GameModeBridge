@@ -26,7 +26,12 @@ class StatusStore(context: Context) {
 
 /** 처리 결과를 화면 표시용 문구로 바꿈 (메시지 내용은 넣지 않음) */
 fun ProcessResult.describe(): String = when (this) {
-    is ProcessResult.Accepted -> {
+    is ProcessResult.Accepted -> if (serviceStart) {
+        when (notify) {
+            NotifyResult.POSTED -> "서비스 시작: 메시지 검증 완료, 이미 꺼진 상태라 키워드 없이 알림"
+            NotifyResult.BLOCKED -> "서비스 시작: 메시지 검증 완료, 알림 권한 차단"
+        }
+    } else {
         val label = if (state == GameState.ON) "켜기" else "끄기"
         when (notify) {
             NotifyResult.POSTED -> "$label: 메시지 검증 완료, 알림 게시 요청 완료"

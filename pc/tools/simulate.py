@@ -85,9 +85,9 @@ def _run_detection(ctx: Context, steps: list[set[str]], expected: dict[int, str]
     """steps를 감지 주기(2초)마다 재생함. expected는 해당 순서의 발송에 대한 휴대폰 기대 결과."""
     count = {"n": 0}
 
-    def send_state(state: str, game: str) -> None:
+    def send_state(state: str, game: str, sync: bool = False) -> None:
         count["n"] += 1
-        payload = crypto.make_payload(state, game, ctx.state.next_seq(), ctx.now())
+        payload = crypto.make_payload(state, game, ctx.state.next_seq(), ctx.now(), sync)
         ctx.send(f"감지 결과 {state} ({game})", crypto.seal(ctx.key, payload), expected.get(count["n"], "예상하지 않은 발송"))
 
     bridge = Bridge(FakeProvider(steps), Detector(("game_a.exe", "game_b.exe")), send_state)

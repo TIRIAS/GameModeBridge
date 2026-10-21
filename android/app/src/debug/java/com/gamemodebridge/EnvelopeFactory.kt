@@ -16,13 +16,16 @@ class EnvelopeFactory(private val key: SecretKey) {
 
     private val random = SecureRandom()
 
-    fun plaintext(state: String, game: String, ts: Long, seq: Long, msgId: String = randomMsgId()): ByteArray =
+    fun plaintext(
+        state: String, game: String, ts: Long, seq: Long, msgId: String = randomMsgId(), sync: Boolean = false,
+    ): ByteArray =
         buildJsonObject {
             put("state", state)
             put("game", game)
             put("ts", ts)
             put("seq", seq)
             put("msg_id", msgId)
+            if (sync) put("sync", true)
         }.toString().toByteArray(Charsets.UTF_8)
 
     fun seal(plaintext: ByteArray, aad: ByteArray = AAD): Map<String, String> {
@@ -34,8 +37,8 @@ class EnvelopeFactory(private val key: SecretKey) {
         return mapOf("v" to PROTOCOL_VERSION, "iv" to b64(iv), "ct" to b64(ct))
     }
 
-    fun message(state: String, game: String, ts: Long, seq: Long): Map<String, String> =
-        seal(plaintext(state, game, ts, seq))
+    fun message(state: String, game: String, ts: Long, seq: Long, sync: Boolean = false): Map<String, String> =
+        seal(plaintext(state, game, ts, seq, sync = sync))
 
     private fun randomMsgId(): String =
         ByteArray(16).also(random::nextBytes).joinToString("") { "%02x".format(it) }
